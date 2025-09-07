@@ -162,6 +162,7 @@ class ActivitiesMenu(ctk.CTkFrame):
         # --- Frame para los botones de acción (Descargar / Evaluar) ---
         actions_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
         actions_frame.grid(row=1, column=0, sticky="ew", pady=(5,0))
+        actions_frame.grid_columnconfigure(3, weight=1) # Columna para el menú de modelos
 
         self.download_button = ctk.CTkButton(
             actions_frame, text="Descargar Entregas", state="disabled",
@@ -174,12 +175,20 @@ class ActivitiesMenu(ctk.CTkFrame):
             command=self._start_evaluation_thread
         )
         self.evaluate_button.pack(side="left", padx=10)
+
+        # --- Menú de selección de Modelos ---
+        self.model_selector_label = ctk.CTkLabel(actions_frame, text="Modelo:")
+        self.model_selector_label.pack(side="left", padx=(10, 0))
+
+        self.model_selector = ctk.CTkOptionMenu(actions_frame, values=["Cargando..."])
+        self.model_selector.pack(side="left", padx=5)
+        self._populate_model_selector() # Llenar el menú
         
         self.cancel_button = ctk.CTkButton(
             actions_frame, text="Cancelar Proceso", state="disabled",
             command=self._cancel_running_task, fg_color="firebrick", hover_color="darkred"
         )
-        self.cancel_button.pack(side="left", padx=10)
+        self.cancel_button.pack(side="right", padx=10)
 
         # Frame para la lista de actividades
         self.assignments_frame = ctk.CTkScrollableFrame(download_tab, label_text="Actividades del Curso")
@@ -192,6 +201,22 @@ class ActivitiesMenu(ctk.CTkFrame):
 
         # Iniciar la carga en un hilo para no bloquear la GUI
         threading.Thread(target=self._load_assignments, daemon=True).start()
+
+    def _populate_model_selector(self):
+        """Puebla el menú de selección con los modelos de evaluación disponibles."""
+        if not self.gemini_evaluator:
+            self.model_selector.configure(values=["Evaluador no disp."], state="disabled")
+            return
+        try:
+            models, default_model = self.gemini_evaluator.list_evaluation_models()
+            if models:
+                self.model_selector.configure(values=models, state="normal")
+                self.model_selector.set(default_model)
+            else:
+                self.model_selector.configure(values=["No hay modelos"], state="disabled")
+        except Exception as e:
+            logger.error(f"No se pudieron cargar los modelos de Gemini: {e}")
+            self.model_selector.configure(values=["Error"], state="disabled")
 
     def _load_assignments(self):
         """Carga las actividades en un hilo secundario y actualiza la GUI."""
@@ -254,6 +279,8 @@ class ActivitiesMenu(ctk.CTkFrame):
         self.download_button.configure(state="disabled")
         self.evaluate_button.configure(state="disabled")
         self.cancel_button.configure(state="disabled")
+        # También controlar el estado del menú de modelos
+        self.model_selector.configure(state="disabled")
 
     def _select_assignment(self, assignment_id):
         """Se llama al pulsar un botón de actividad. Inicia la obtención de detalles."""
@@ -281,8 +308,10 @@ class ActivitiesMenu(ctk.CTkFrame):
         # Activar el botón de evaluación solo si hay rúbrica y el cliente de Gemini está disponible
         if summary.get("has_rubric") and self.gemini_evaluator:
             self.evaluate_button.configure(state="normal")
+            self.model_selector.configure(state="normal") # Activar también el menú
         else:
             self.evaluate_button.configure(state="disabled")
+            self.model_selector.configure(state="disabled") # Desactivar también el menú
             if not self.gemini_evaluator:
                 self.main_window.update_status("Evaluación no disponible: Módulo Gemini no cargado.", 5000)
             elif not summary.get("has_rubric"):
@@ -367,6 +396,9 @@ class ActivitiesMenu(ctk.CTkFrame):
                 self.queue.get_nowait()
             except queue.Empty:
                 break
+        
+        model_name = self.model_selector.get() # Obtener el modelo seleccionado
+        logger.info(f"Iniciando evaluación con el modelo: {model_name}")
 
         self.main_window.update_status("Iniciando evaluación con IA...")
         self.main_window.show_progress_bar()
@@ -374,7 +406,7 @@ class ActivitiesMenu(ctk.CTkFrame):
         self.cancel_button.configure(state="normal")
 
         self.active_thread = threading.Thread(
-            target=self._handle_evaluation, args=(assignment_id, summary, base_dir)
+            target=self._handle_evaluation, args=(assignment_id, summary, base_dir, model_name)
         )
         self.active_thread.start()
         self.stop_polling = False # Asegurarse de que el sondeo esté activo
@@ -420,7 +452,7 @@ class ActivitiesMenu(ctk.CTkFrame):
             if not self.stop_polling:
                 self.after(100, self._process_queue) # Volver a comprobar en 100ms
 
-    def _handle_evaluation(self, assignment_id, summary, base_dir):
+    def _handle_evaluation(self, assignment_id, summary, base_dir, model_name: str):
         """Lógica de evaluación con Gemini usando la API de Archivos y de Lotes."""
         uploaded_files = {}  # {student_name: {"file": gemini_file_object, "sha": hash}}
         try:
@@ -505,7 +537,7 @@ class ActivitiesMenu(ctk.CTkFrame):
                 def _one_eval(student_name, data):
                     gemini_file = data["file"]
                     contents = self.gemini_evaluator.prepare_pdf_evaluation_request(gemini_file.name, rubric_json)
-                    return _call_with_backoff_and_rate(controller, self.gemini_evaluator.execute_single_request, contents)
+                    return _call_with_backoff_and_rate(controller, self.gemini_evaluator.execute_single_request, contents, model_name=model_name)
 
                 i_done = 0
                 total_items = len(items_to_evaluate)

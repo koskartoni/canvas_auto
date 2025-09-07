@@ -36,6 +36,7 @@ Aplicación de escritorio para automatizar tareas en la plataforma Canvas LMS, c
         -   **Evaluación Asistida por IA (Gemini)**:
             -   Opción para evaluar automáticamente las entregas en PDF que tengan una rúbrica asociada.
             -   Utiliza un modelo multimodal (Gemini 1.5) para analizar el contenido del documento, incluyendo texto e imágenes.
+            -   **Selección de Modelo de IA**: Se ha añadido un menú desplegable junto al botón de evaluación que permite seleccionar el modelo de Gemini a utilizar. La lista de modelos se ha actualizado para incluir las versiones más recientes y potentes, y se ha establecido `gemini-2.5-pro` como el modelo por defecto por sus capacidades avanzadas de razonamiento.
             -   Genera un archivo `evaluaciones_gemini.csv` en la carpeta de la actividad con las puntuaciones y justificaciones detalladas para cada criterio.
             -   Proceso optimizado para realizar una única llamada a la API por documento, respetando los límites de uso.
 ### Formato JSON para Preguntas de Quiz

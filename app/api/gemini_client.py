@@ -112,6 +112,31 @@ class HybridEvaluator:
         self._vision_model = genai.GenerativeModel(self.vision_model_name)
 
     # -------------------------- PÚBLICO ----------------------------------
+    def list_evaluation_models(self) -> Tuple[List[str], str]:
+        """
+        Devuelve una lista de modelos de Gemini recomendados para evaluación y el modelo por defecto.
+        """
+        # Lista de modelos compatibles con la evaluación de texto/PDF/imágenes, basada en la documentación.
+        # https://ai.google.dev/gemini-api/docs/models?hl=es-419
+        recommended_models = [
+            # Modelos más nuevos y potentes
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            
+            # Modelos establecidos y fiables
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-1.0-pro",
+            "gemini-pro-vision",
+        ]
+        # El 2.5 Pro se establece como el predeterminado por su capacidad de razonamiento superior.
+        default_model = "gemini-2.5-pro"
+
+        return recommended_models, default_model
+
     def evaluate_mixed(self, text: str, images: Optional[List["Image.Image"]] = None, schema_hint: Optional[str] = None) -> Dict[str, Any]:
         """Evalúa entrada multimodal en chunks de texto (+ imágenes solo en el primer chunk).
         """
@@ -221,7 +246,7 @@ class HybridEvaluator:
         rubric_text = json.dumps(criteria_data, ensure_ascii=False, indent=2)
 
         # El nuevo esquema JSON que esperamos
-        new_schema = """{
+        new_schema = '''{
   "evaluacion": [
     {
       "criterio": "Nombre exacto del criterio de la rúbrica",
@@ -231,7 +256,7 @@ class HybridEvaluator:
     }
   ],
   "resumen_cualitativo": "Un resumen de 3-4 frases sobre las fortalezas y debilidades generales del trabajo, con una recomendación de mejora."
-}"""
+}'''
 
         return (
             "Eres un asistente de profesor universitario experto. Tu tarea es evaluar la entrega de un alumno (archivo PDF adjunto) "
@@ -260,13 +285,27 @@ class HybridEvaluator:
         # Devuelve la lista de 'contents' lista para el batch
         return [prompt, uploaded_file]
 
-    def execute_single_request(self, contents: List[Any]) -> Dict[str, Any]:
+    def execute_single_request(self, contents: List[Any], model_name: Optional[str] = None) -> Dict[str, Any]:
         """
         Ejecuta una única petición de evaluación y devuelve el JSON parseado.
         Diseñado para ser usado en un bucle o un pool de hilos.
+        Permite especificar un modelo a usar para esta petición.
         """
+        model_to_use = self._vision_model
+        # Si se especifica un nombre de modelo y es diferente al modelo de visión por defecto
+        if model_name and model_name != self.vision_model_name:
+            try:
+                self.logger.info(f"Utilizando modelo de evaluación personalizado: {model_name}")
+                # Crea una instancia del modelo solo si es diferente para evitar sobrecarga
+                model_to_use = genai.GenerativeModel(model_name)
+            except Exception as e:
+                self.logger.warning(
+                    f"No se pudo inicializar el modelo '{model_name}'. "
+                    f"Se usará el modelo por defecto ({self.vision_model_name}). Error: {e}"
+                )
+        
         # Reutilizamos la lógica de reintentos
-        final_text = self._call_with_retry(self._vision_model, contents)
+        final_text = self._call_with_retry(model_to_use, contents)
         # Reutilizamos la lógica de parseo de JSON
         return self._json_from_text(final_text)
         
@@ -399,7 +438,7 @@ if __name__ == "__main__":
     evaluator = HybridEvaluator(api_key=os.getenv("GOOGLE_API_KEY", "YOUR_API_KEY"))
 
     # Ejemplo multimodal
-    sample_text = """Resumen del ejercicio 1 y 2... (texto largo)"""
+    sample_text = '''Resumen del ejercicio 1 y 2... (texto largo)'''
     images = []
     if Image:
         # Crea una imagen en blanco de ejemplo (opcional)
