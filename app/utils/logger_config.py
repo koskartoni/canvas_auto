@@ -1,71 +1,46 @@
 # app/utils/logger_config.py
-from __future__ import annotations
+
 import logging
-import sys
 import os
-import io
-from pathlib import Path
+from logging.handlers import RotatingFileHandler
 
-LOG_FILENAME = "canvas_auto.log"
-LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+def setup_logging(log_level="INFO"):
+    """Configura el sistema de logging para toda la aplicación."""
+    # Crear la carpeta de logs si no existe
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
 
-def _ensure_log_dir() -> Path:
-    """
-    Crea (si no existe) una carpeta 'logs' en el directorio de trabajo.
-    Evita usar _MEIPASS (solo lectura) en ejecutables onefile.
-    """
-    try:
-        base = Path.cwd()
-        log_dir = base / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        return log_dir
-    except Exception:
-        # Último recurso: carpeta actual
-        return Path(".")
+    # Formato del log
+    log_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 
-def _safe_stream(std) -> io.TextIOWrapper | None:
-    """
-    Devuelve un stream de texto UTF-8 si es posible.
-    En .exe windowed, stdout/stderr suelen ser None → devuelve None.
-    """
-    if std is None:
-        return None
+    # Configurar el logger raíz
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
 
-    # Si soporta reconfigure (Py 3.7+), úsalo.
-    try:
-        if hasattr(std, "reconfigure"):
-            std.reconfigure(encoding="utf-8", newline="")
-            return std
-    except Exception:
-        pass
+    # Limpiar handlers existentes para evitar duplicados
+    if root_logger.hasHandlers():
+        root_logger.handlers.clear()
 
-    # Si tiene buffer binario, envuélvelo en TextIOWrapper UTF-8.
-    try:
-        buf = getattr(std, "buffer", None)
-        if buf is not None:
-            return io.TextIOWrapper(buf, encoding="utf-8", errors="replace")
-    except Exception:
-        pass
+    # 1. Handler para guardar todos los logs a un archivo rotativo
+    file_handler = RotatingFileHandler(
+        'logs/canvas_auto.log', maxBytes=5*1024*1024, backupCount=2, encoding='utf-8'
+    )
+    file_handler.setFormatter(log_formatter)
+    root_logger.addHandler(file_handler)
 
-    # Si nada de lo anterior, mejor no usar stream.
-    return None
+    # 2. Handler para mostrar logs en la consola (para depuración en tiempo real)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(log_formatter)
+    root_logger.addHandler(console_handler)
 
-# Handlers
-handlers: list[logging.Handler] = []
+    # Silenciar loggers de librerías de terceros que son muy verbosos
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("google.generativeai").setLevel(logging.WARNING)
 
-# Archivo siempre, en UTF-8
-log_path = _ensure_log_dir() / LOG_FILENAME
-file_handler = logging.FileHandler(log_path, encoding="utf-8")
-handlers.append(file_handler)
+    logging.info("Sistema de logging configurado.")
 
-# Consola solo si existe (en .exe windowed normalmente será None)
-stdout_stream = _safe_stream(getattr(sys, "stdout", None))
-if stdout_stream is not None:
-    handlers.append(logging.StreamHandler(stdout_stream))
-
-# Config global
-logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, handlers=handlers, force=True)
-
-# Logger de la app
-logger = logging.getLogger("canvas_auto")
-logger.propagate = False
+# Obtener un logger para un módulo específico
+logger = logging.getLogger(__name__)

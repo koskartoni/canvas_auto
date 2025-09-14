@@ -4,15 +4,22 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5c95a92f-e177-4e46-8733-3b40f1ef1fab" name="Changes" comment="Auto evaluacion con gemini v2 por lotes">
+    <list default="true" id="5c95a92f-e177-4e46-8733-3b40f1ef1fab" name="Changes" comment="Mejora en el promt">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/canvas_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/canvas_client.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/api/gemini_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/gemini_client.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/gui/activities_menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/gui/activities_menu.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/utils/logger_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/utils/logger_config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ComposerSettings">
+    <execution />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -48,29 +55,30 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.course_window.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main_window.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/rubrics-builder&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/koska/OneDrive/Documentos/PROYECTOS_PROGRAMACION_OSKAR/canvas_auto/assets/icons&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.course_window.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.main_window.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "feature/rubrics-builder",
+    "last_opened_file_path": "C:/Users/koska/OneDrive/Documentos/PROYECTOS_PROGRAMACION_OSKAR/canvas_auto/docs",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\koska\OneDrive\Documentos\PROYECTOS_PROGRAMACION_OSKAR\canvas_auto\docs" />
       <recent name="C:\Users\koska\OneDrive\Documentos\PROYECTOS_PROGRAMACION_OSKAR\canvas_auto\assets\icons" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
@@ -82,8 +90,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-e03c56caf84a-JavaScript-PY-252.23892.515" />
-        <option value="bundled-python-sdk-7e47963ff851-f0eec537fc84-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.23892.515" />
+        <option value="bundled-js-predefined-d6986cc7102b-b598e85cdad2-JavaScript-PY-252.25557.178" />
+        <option value="bundled-python-sdk-ce6832f46686-7b97d883f26b-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.25557.178" />
       </set>
     </attachedChunks>
   </component>
@@ -119,7 +127,23 @@
       <workItem from="1755938801308" duration="2652000" />
       <workItem from="1755957994695" duration="2698000" />
       <workItem from="1755965965368" duration="3899000" />
-      <workItem from="1756026318421" duration="2366000" />
+      <workItem from="1756026318421" duration="4609000" />
+      <workItem from="1756200317219" duration="1138000" />
+      <workItem from="1756217590853" duration="109000" />
+      <workItem from="1756284315241" duration="5000" />
+      <workItem from="1756284785882" duration="1815000" />
+      <workItem from="1756286763035" duration="22000" />
+      <workItem from="1756664419234" duration="91000" />
+      <workItem from="1756664631000" duration="59000" />
+      <workItem from="1756746159224" duration="366000" />
+      <workItem from="1757264318610" duration="43000" />
+      <workItem from="1757264400531" duration="2345000" />
+      <workItem from="1757747987329" duration="1015000" />
+      <workItem from="1757756694922" duration="88000" />
+      <workItem from="1757756829735" duration="1805000" />
+      <workItem from="1757760288691" duration="2111000" />
+      <workItem from="1757775912138" duration="1650000" />
+      <workItem from="1757832694592" duration="2537000" />
     </task>
     <task id="LOCAL-00001" summary="Implementa flujo de login y selección de curso">
       <option name="closed" value="true" />
@@ -249,7 +273,23 @@
       <option name="project" value="LOCAL" />
       <updated>1756026336239</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="Auto evaluacion cEste commit introduce una refactorización completa del proceso de evaluación con IA para mejorar drásticamente su robustez, eficiencia y resiliencia frente a los límites de la API de Gemini.&#10;&#10;Problema Anterior:&#10;- La evaluación en paralelo con muchos hilos agotaba rápidamente la cuota diaria de la API gratuita (error 429), causando que el proceso fallara prematuramente.&#10;- Se volvían a subir y a evaluar los mismos archivos en cada ejecución, consumiendo tiempo y cuota de API innecesariamente.&#10;&#10;Solución Implementada:&#10;- **Controlador de Ritmo Adaptativo:** Se introduce una clase `RateController` que limita las peticiones por segundo (QPS) y reduce dinámicamente el número de hilos de trabajo si se detectan errores de cuota. El sistema ahora se &quot;enfría&quot; y se autorregula en lugar de fallar.&#10;&#10;- **Caché de Subida de Archivos:** Se utiliza un hash (SHA256) para identificar los PDFs. Los archivos solo se suben a la API de Gemini una vez y su referencia se guarda en `.gemini_file_cache.json`, evitando subidas repetidas.&#10;&#10;- **Caché de Resultados de Evaluación:** Se añade una segunda capa de caché (`evaluaciones_cache.json`) que almacena el resultado de la evaluación para un hash de archivo específico. Si un PDF no ha cambiado, se reutiliza el resultado anterior sin contactar a la API.&#10;&#10;- **Generación de CSV Estable:** El método de guardado de CSV ahora realiza un análisis previo de todos los resultados para construir un conjunto de columnas completo y consistente, evitando la pérdida de datos.&#10;&#10;- **Cancelación de Procesos:** Se ha añadido un botón &quot;Cancelar&quot; funcional que permite al usuario detener de forma segura una evaluación en curso.on gemini v2 por lotes">
+      <option name="closed" value="true" />
+      <created>1756028708511</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1756028708511</updated>
+    </task>
+    <task id="LOCAL-00018" summary="Mejora en el promt">
+      <option name="closed" value="true" />
+      <created>1756031589647</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1756031589647</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -282,12 +322,14 @@
     <MESSAGE value="Traducido al español un comentario en el main." />
     <MESSAGE value="Auto evaluacion con gemini v1" />
     <MESSAGE value="Auto evaluacion con gemini v2 por lotes" />
-    <option name="LAST_COMMIT_MESSAGE" value="Auto evaluacion con gemini v2 por lotes" />
+    <MESSAGE value="Auto evaluacion cEste commit introduce una refactorización completa del proceso de evaluación con IA para mejorar drásticamente su robustez, eficiencia y resiliencia frente a los límites de la API de Gemini.&#10;&#10;Problema Anterior:&#10;- La evaluación en paralelo con muchos hilos agotaba rápidamente la cuota diaria de la API gratuita (error 429), causando que el proceso fallara prematuramente.&#10;- Se volvían a subir y a evaluar los mismos archivos en cada ejecución, consumiendo tiempo y cuota de API innecesariamente.&#10;&#10;Solución Implementada:&#10;- **Controlador de Ritmo Adaptativo:** Se introduce una clase `RateController` que limita las peticiones por segundo (QPS) y reduce dinámicamente el número de hilos de trabajo si se detectan errores de cuota. El sistema ahora se &quot;enfría&quot; y se autorregula en lugar de fallar.&#10;&#10;- **Caché de Subida de Archivos:** Se utiliza un hash (SHA256) para identificar los PDFs. Los archivos solo se suben a la API de Gemini una vez y su referencia se guarda en `.gemini_file_cache.json`, evitando subidas repetidas.&#10;&#10;- **Caché de Resultados de Evaluación:** Se añade una segunda capa de caché (`evaluaciones_cache.json`) que almacena el resultado de la evaluación para un hash de archivo específico. Si un PDF no ha cambiado, se reutiliza el resultado anterior sin contactar a la API.&#10;&#10;- **Generación de CSV Estable:** El método de guardado de CSV ahora realiza un análisis previo de todos los resultados para construir un conjunto de columnas completo y consistente, evitando la pérdida de datos.&#10;&#10;- **Cancelación de Procesos:** Se ha añadido un botón &quot;Cancelar&quot; funcional que permite al usuario detener de forma segura una evaluación en curso.on gemini v2 por lotes" />
+    <MESSAGE value="Mejora en el promt" />
+    <option name="LAST_COMMIT_MESSAGE" value="Mejora en el promt" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/canvas_auto$course_window.coverage" NAME="course_window Coverage Results" MODIFIED="1753873132715" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/gui" />
     <SUITE FILE_PATH="coverage/canvas_auto$main_window.coverage" NAME="main_window Coverage Results" MODIFIED="1754314119580" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/gui" />
-    <SUITE FILE_PATH="coverage/canvas_auto$main.coverage" NAME="main Coverage Results" MODIFIED="1756028068915" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/canvas_auto$main.coverage" NAME="main Coverage Results" MODIFIED="1757834861462" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/canvas_auto$gemini_tester.coverage" NAME="gemini_tester Coverage Results" MODIFIED="1755624565131" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tools" />
   </component>
 </project>

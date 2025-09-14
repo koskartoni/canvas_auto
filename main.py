@@ -4,19 +4,17 @@ import sys
 import os
 import customtkinter as ctk
 from tkinter import messagebox
-from app.utils.logger_config import logger
 
-# Añade el directorio raíz del proyecto al path de Python para encontrar el paquete 'app'
-project_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(project_root)
+# Añade el directorio raíz del proyecto al path de Python
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from app.utils.logger_config import setup_logging, logger
 from app.utils import config_manager
 from app.api.canvas_client import CanvasClient
 from app.api.gemini_client import HybridEvaluator
 from app.gui.login_window import LoginWindow
 from app.gui.course_window import CourseWindow
 from app.gui.main_window import MainWindow
-
 
 class App:
     def __init__(self):
@@ -29,58 +27,65 @@ class App:
             logger.warning("No se proporcionaron credenciales. Saliendo.")
             return
 
-        self.client = CanvasClient(credentials['canvas_url'], credentials['api_token'])
+        # Pasar el logger a los clientes de API
+        self.client = CanvasClient(
+            credentials['canvas_url'], 
+            credentials['api_token'], 
+            logger=logger
+        )
         if self.client.error_message:
+            # El error ya es logueado por el cliente, solo se muestra al usuario
             messagebox.showerror("Error de Conexión", self.client.error_message)
             return
 
-        # Extraer la clave de Gemini del mismo archivo de configuración
-        gemini_api_key = credentials.get('gemini_api_key') if credentials else None
+        gemini_api_key = credentials.get('gemini_api_key')
+        self.gemini_evaluator = None
+        if gemini_api_key:
+            try:
+                self.gemini_evaluator = HybridEvaluator(api_key=gemini_api_key, logger=logger)
+            except (ImportError, ValueError) as e:
+                logger.warning(f"No se pudo inicializar Gemini: {e}. La función de evaluación no estará disponible.")
+                messagebox.showwarning("Advertencia de Gemini", f"No se pudo inicializar el evaluador de Gemini: {e}")
+        else:
+            logger.info("No se encontró la clave de API de Gemini. La evaluación con IA estará deshabilitada.")
 
-        # Crear una única instancia del cliente de Gemini
-        try:
-            self.gemini_evaluator = HybridEvaluator(api_key=gemini_api_key, logger=logger)
-        except ImportError as e:
-            logger.warning(f"No se pudo inicializar Gemini: {e}. La función de evaluación no estará disponible.")
-            self.gemini_evaluator = None
         self.run_main_flow()
 
     def handle_login(self):
-        """
-        Gestiona la carga de credenciales existentes o solicita nuevas
-        a través de la ventana de inicio de sesión.
-        """
+        """Gestiona la carga de credenciales o solicita nuevas."""
         credentials = config_manager.load_credentials()
         if not credentials:
-            login_win = LoginWindow()
+            login_win = LoginWindow() # Esta ventana también debería usar el logger si es necesario
             login_win.mainloop()
             credentials = config_manager.load_credentials()
         return credentials
 
     def run_main_flow(self):
-        """
-        Ejecuta el flujo principal de la aplicación que puede ser reiniciado
-        para seleccionar un nuevo curso.
-        """
+        """Ejecuta el flujo principal de la aplicación."""
         while True:
-            # Pasamos el cliente directamente a CourseWindow para que gestione la carga de cursos.
-            course_win = CourseWindow(self.client)
+            course_win = CourseWindow(self.client) # El cliente ya tiene el logger
             selected_course_id = course_win.get_selected_course()
 
             if not selected_course_id:
                 logger.info("No se seleccionó ningún curso. Saliendo de la aplicación.")
-                break  # El usuario cerró la ventana de selección
+                break
 
             main_app = MainWindow(client=self.client, course_id=selected_course_id, gemini_evaluator=self.gemini_evaluator)
             main_app.mainloop()
 
-            # Si la ventana principal se cierra con el flag de reinicio, el bucle continuará.
-            # De lo contrario, saldrá.
             if not main_app.restart:
                 break
 
         logger.info("Aplicación cerrada.")
 
-
 if __name__ == "__main__":
-    app = App()
+    # Configurar el logging para toda la aplicación antes de que nada más se ejecute
+    config = config_manager.load_credentials()
+    log_level = config.get("log_level", "INFO") if config else "INFO"
+    setup_logging(log_level=log_level)
+
+    try:
+        app = App()
+    except Exception as e:
+        logger.critical("Ha ocurrido un error fatal y no controlado en la aplicación.", exc_info=True)
+        messagebox.showerror("Error Fatal", f"Ha ocurrido un error no recuperable: {e}\n\nConsulte 'logs/canvas_auto.log' para más detalles.")
