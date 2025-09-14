@@ -4,14 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5c95a92f-e177-4e46-8733-3b40f1ef1fab" name="Changes" comment="Mejora en el promt">
+    <list default="true" id="5c95a92f-e177-4e46-8733-3b40f1ef1fab" name="Changes" comment="Corregido la creación de quizzes y añadidos logs, que se puede activar y desactivar desde config.json">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/api/canvas_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/canvas_client.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/api/gemini_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/gemini_client.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/gui/activities_menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/gui/activities_menu.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/utils/logger_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/utils/logger_config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -143,7 +140,7 @@
       <workItem from="1757756829735" duration="1805000" />
       <workItem from="1757760288691" duration="2111000" />
       <workItem from="1757775912138" duration="1650000" />
-      <workItem from="1757832694592" duration="2537000" />
+      <workItem from="1757832694592" duration="8676000" />
     </task>
     <task id="LOCAL-00001" summary="Implementa flujo de login y selección de curso">
       <option name="closed" value="true" />
@@ -289,7 +286,15 @@
       <option name="project" value="LOCAL" />
       <updated>1756031589647</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="Corregido la creación de quizzes y añadidos logs, que se puede activar y desactivar desde config.json">
+      <option name="closed" value="true" />
+      <created>1757835291560</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1757835291560</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -324,12 +329,13 @@
     <MESSAGE value="Auto evaluacion con gemini v2 por lotes" />
     <MESSAGE value="Auto evaluacion cEste commit introduce una refactorización completa del proceso de evaluación con IA para mejorar drásticamente su robustez, eficiencia y resiliencia frente a los límites de la API de Gemini.&#10;&#10;Problema Anterior:&#10;- La evaluación en paralelo con muchos hilos agotaba rápidamente la cuota diaria de la API gratuita (error 429), causando que el proceso fallara prematuramente.&#10;- Se volvían a subir y a evaluar los mismos archivos en cada ejecución, consumiendo tiempo y cuota de API innecesariamente.&#10;&#10;Solución Implementada:&#10;- **Controlador de Ritmo Adaptativo:** Se introduce una clase `RateController` que limita las peticiones por segundo (QPS) y reduce dinámicamente el número de hilos de trabajo si se detectan errores de cuota. El sistema ahora se &quot;enfría&quot; y se autorregula en lugar de fallar.&#10;&#10;- **Caché de Subida de Archivos:** Se utiliza un hash (SHA256) para identificar los PDFs. Los archivos solo se suben a la API de Gemini una vez y su referencia se guarda en `.gemini_file_cache.json`, evitando subidas repetidas.&#10;&#10;- **Caché de Resultados de Evaluación:** Se añade una segunda capa de caché (`evaluaciones_cache.json`) que almacena el resultado de la evaluación para un hash de archivo específico. Si un PDF no ha cambiado, se reutiliza el resultado anterior sin contactar a la API.&#10;&#10;- **Generación de CSV Estable:** El método de guardado de CSV ahora realiza un análisis previo de todos los resultados para construir un conjunto de columnas completo y consistente, evitando la pérdida de datos.&#10;&#10;- **Cancelación de Procesos:** Se ha añadido un botón &quot;Cancelar&quot; funcional que permite al usuario detener de forma segura una evaluación en curso.on gemini v2 por lotes" />
     <MESSAGE value="Mejora en el promt" />
-    <option name="LAST_COMMIT_MESSAGE" value="Mejora en el promt" />
+    <MESSAGE value="Corregido la creación de quizzes y añadidos logs, que se puede activar y desactivar desde config.json" />
+    <option name="LAST_COMMIT_MESSAGE" value="Corregido la creación de quizzes y añadidos logs, que se puede activar y desactivar desde config.json" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/canvas_auto$course_window.coverage" NAME="course_window Coverage Results" MODIFIED="1753873132715" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/gui" />
     <SUITE FILE_PATH="coverage/canvas_auto$main_window.coverage" NAME="main_window Coverage Results" MODIFIED="1754314119580" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/gui" />
-    <SUITE FILE_PATH="coverage/canvas_auto$main.coverage" NAME="main Coverage Results" MODIFIED="1757834861462" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/canvas_auto$main.coverage" NAME="main Coverage Results" MODIFIED="1757842374484" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/canvas_auto$gemini_tester.coverage" NAME="gemini_tester Coverage Results" MODIFIED="1755624565131" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tools" />
   </component>
 </project>

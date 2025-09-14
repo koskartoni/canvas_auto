@@ -89,6 +89,7 @@ class ActivitiesMenu(ctk.CTkFrame):
         self.queue = queue.Queue()
         self.cancel_event = threading.Event()
         self.stop_polling = False
+        self.evaluation_rows = [] # Para la nueva pestaña de revisión
 
         logger.debug("Inicializando ActivitiesMenu.")
 
@@ -103,8 +104,11 @@ class ActivitiesMenu(ctk.CTkFrame):
 
         self.tab_view.add("Crear Actividad")
         self.tab_view.add("Descargar Entregas")
+        self.tab_view.add("Revisar y Cargar Notas") # Nueva pestaña
+        
         self.setup_activity_tab()
         self.setup_download_tab()
+        self.setup_review_tab() # Nueva llamada
 
     def setup_activity_tab(self):
         activity_tab = self.tab_view.tab("Crear Actividad")
@@ -183,6 +187,92 @@ class ActivitiesMenu(ctk.CTkFrame):
         self.loading_label.pack(pady=20)
 
         threading.Thread(target=self._load_assignments, daemon=True).start()
+
+    def setup_review_tab(self):
+        review_tab = self.tab_view.tab("Revisar y Cargar Notas")
+        review_tab.grid_columnconfigure(0, weight=1)
+        review_tab.grid_rowconfigure(1, weight=1)
+
+        # Frame para los botones de acción
+        action_frame = ctk.CTkFrame(review_tab)
+        action_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+
+        load_csv_button = ctk.CTkButton(action_frame, text="Cargar CSV de Evaluaciones", command=self.handle_load_csv)
+        load_csv_button.pack(side="left", padx=10, pady=5)
+
+        self.upload_button = ctk.CTkButton(action_frame, text="Publicar Notas Seleccionadas en Canvas", command=self.handle_upload_grades, state="disabled")
+        self.upload_button.pack(side="right", padx=10, pady=5)
+
+        # Frame para mostrar la tabla con las notas
+        self.review_frame = ctk.CTkScrollableFrame(review_tab, label_text="Evaluaciones a Revisar")
+        self.review_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+
+    def handle_load_csv(self):
+        # 1. Abrir un diálogo para que el usuario seleccione el archivo `evaluaciones_gemini.csv`.
+        file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
+        if not file_path:
+            return
+
+        # Limpiar la vista anterior
+        for widget in self.review_frame.winfo_children():
+            widget.destroy()
+
+        # 2. Leer el CSV y crear los widgets para cada fila.
+        #    self.evaluation_rows = [] # Una lista para mantener referencias a los widgets de cada fila
+        #    ... (lógica de lectura y creación de CTkEntry, CTkCheckBox, etc.)
+        #    Por cada fila del CSV, guarda en una lista: el user_id, los criterion_id,
+        #    y las referencias a los widgets de puntos y comentarios para poder leer sus valores después.
+        
+        self.upload_button.configure(state="normal") # Activa el botón de subida
+        
+    def handle_upload_grades(self):
+        if not self.selected_assignment_id:
+            messagebox.showerror("Error", "No hay una actividad seleccionada.")
+            return
+
+        # Lista para guardar los datos a subir
+        grades_to_upload = []
+
+        # 1. Recorre los datos de la tabla que has mostrado en la GUI
+        # for row_data in self.evaluation_rows:
+        #     if row_data['checkbox'].get() == "1": # Si está seleccionado
+        #         rubric_assessment = {}
+        #         # Reconstruye el diccionario de la rúbrica con los valores de los CTkEntry
+        #         for criterion_id, points_entry in row_data['criteria_entries'].items():
+        #             rubric_assessment[criterion_id] = {'points': points_entry.get()}
+            
+        #         grades_to_upload.append({
+        #             'user_id': row_data['user_id'],
+        #             'comment': row_data['comment_textbox'].get("1.0", "end-c"),
+        #             'rubric_assessment': rubric_assessment
+        #         })
+
+        if not grades_to_upload:
+            messagebox.showinfo("Información", "No has seleccionado ninguna calificación para subir.")
+            return
+
+        # 2. Inicia el proceso de subida en un hilo para no bloquear la interfaz
+        self.active_thread = threading.Thread(
+            target=self._upload_grades_worker, 
+            args=(self.selected_assignment_id, grades_to_upload)
+        )
+        self.active_thread.start()
+        # ... (usa tu sistema de cola para actualizar el progreso en la UI)
+
+    def _upload_grades_worker(self, assignment_id, grades_to_upload):
+        total = len(grades_to_upload)
+        for i, grade_data in enumerate(grades_to_upload):
+            # ... (actualiza la UI con el progreso usando self.queue)
+            
+            self.client.grade_submission_with_rubric(
+                self.course_id,
+                assignment_id,
+                grade_data['user_id'],
+                grade_data['rubric_assessment'],
+                grade_data['comment']
+            )
+        
+        # ... (envía un mensaje de finalización a la cola)
 
     def _populate_model_selector(self):
         logger.debug("Poblando el selector de modelos de IA.")

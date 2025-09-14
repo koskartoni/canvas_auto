@@ -4,6 +4,7 @@ Cliente para la API de Gemini con logging y gestión de errores mejorados.
 from __future__ import annotations
 
 import io
+import random
 from dataclasses import asdict, dataclass
 from typing import List, Optional, Any, Dict, Union, Tuple
 import json

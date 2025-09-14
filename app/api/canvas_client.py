@@ -357,6 +357,39 @@ class CanvasClient:
         self.logger.info(f"Todas las {len(items)} preguntas se añadieron correctamente al quiz {quiz_id}.")
         return True
 
+    def grade_submission_with_rubric(self, course_id: int, assignment_id: int, user_id: int, rubric_assessment_data: dict, comment: str = None) -> bool:
+        """
+        Califica la entrega de un estudiante usando los datos de una rúbrica y añade un comentario opcional.
+        """
+        logger.info(f"Intentando calificar la entrega para user_id {user_id} en assignment_id {assignment_id}.")
+        if not self.canvas: return False
+
+        try:
+            # Usamos los métodos existentes para obtener los objetos de Canvas
+            course = self.get_course(course_id)
+            if not course: return False
+            
+            assignment = course.get_assignment(assignment_id)
+            submission = assignment.get_submission(user_id)
+
+            # Preparamos el payload que enviaremos a la API
+            edit_payload = {
+                'rubric_assessment': rubric_assessment_data
+            }
+            if comment:
+                edit_payload['comment'] = {'text_comment': comment}
+
+            logger.debug(f"Enviando payload de calificación para user_id {user_id}: {json.dumps(edit_payload)}")
+            
+            # Esta es la llamada clave que actualiza la nota en Canvas
+            submission.edit(**edit_payload)
+            
+            logger.info(f"Entrega para user_id {user_id} calificada con éxito.")
+            return True
+        except Exception as e:
+            self.error_message = f"Error al calificar la entrega para user_id {user_id}: {e}"
+            logger.error(self.error_message, exc_info=True)
+            return False
 
     # --------------------------------------------------------------------- #
     # 4. Rúbricas
