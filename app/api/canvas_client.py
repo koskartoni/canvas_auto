@@ -10,7 +10,7 @@ import logging
 
 import requests
 from canvasapi import Canvas
-from canvasapi.exceptions import InvalidAccessToken, Unauthorized
+from canvasapi.exceptions import InvalidAccessToken, Unauthorized, CanvasException
 
 # Usar un logger específico para este módulo
 logger = logging.getLogger(__name__)
@@ -410,6 +410,110 @@ class CanvasClient:
             self.error_message = f"Error al listar rúbricas: {e}"
             self.logger.error(self.error_message, exc_info=True)
             return None
+
+    def create_rubric(self, course_id: int, title: str, criteria: list, opts: dict = None) -> bool:
+        """Crea una rúbrica en un curso, opcionalmente asociada a una actividad."""
+        if not self.canvas: return False
+        opts = opts or {}
+        logger.info(f"Creando rúbrica '{title}' en el curso {course_id}.")
+
+        try:
+            course = self.get_course(course_id)
+            if not course: return False
+
+            # La API de Canvas espera un diccionario indexado para los criterios y ratings.
+            indexed_criteria = {}
+            for i, crit_orig in enumerate(criteria):
+                crit = {}
+                crit_id = crit_orig.get('id') or f'crit_{i}'
+                
+                crit['id'] = crit_id
+                crit['description'] = crit_orig.get('description') or ''
+                crit['long_description'] = crit_orig.get('long_description') or ''
+                crit['points'] = float(crit_orig.get('points') or 0.0)
+                crit['criterion_use_range'] = crit_orig.get('criterion_use_range', False)
+                crit['ignore_for_scoring'] = crit_orig.get('ignore_for_scoring', False)
+
+                if 'ratings' in crit_orig and crit_orig['ratings'] is not None:
+                    indexed_ratings = {}
+                    for j, rating_orig in enumerate(crit_orig['ratings']):
+                        rating = {}
+                        rating['id'] = rating_orig.get('id') or f'rating_{i}_{j}'
+                        rating['criterion_id'] = crit_id
+                        rating['description'] = rating_orig.get('description') or ''
+                        rating['long_description'] = rating_orig.get('long_description') or ''
+                        rating['points'] = float(rating_orig.get('points') or 0.0)
+                        indexed_ratings[j] = rating
+                    crit['ratings'] = indexed_ratings
+                
+                indexed_criteria[i] = crit
+
+            rubric_data = {
+                'title': title,
+                'free_form_criterion_comments': opts.get('free_form_criterion_comments', True),
+                'criteria': indexed_criteria
+            }
+
+            rubric_association_data = {}
+            if opts.get('assignment_id'):
+                rubric_association_data['association_id'] = opts['assignment_id']
+                rubric_association_data['association_type'] = 'Assignment'
+                rubric_association_data['purpose'] = 'grading'
+                rubric_association_data['use_for_grading'] = True
+            else:
+                rubric_association_data['association_id'] = course_id
+                rubric_association_data['association_type'] = 'Course'
+                rubric_association_data['purpose'] = 'bookmark'
+
+            if 'hide_score_total' in opts:
+                rubric_association_data['hide_score_total'] = opts['hide_score_total']
+
+            logger.debug(f"Payload de la rúbrica: {json.dumps(rubric_data)}")
+            logger.debug(f"Payload de la asociación de rúbrica: {json.dumps(rubric_association_data)}")
+
+            response_data = course.create_rubric(
+                rubric=rubric_data, 
+                rubric_association=rubric_association_data
+            )
+
+            # Normaliza la respuesta: puede venir como objeto Rubric, o como dict {"rubric": Rubric|dict, ...}
+            rubric_part = None
+            if isinstance(response_data, dict):
+                rubric_part = response_data.get("rubric")
+            else:
+                rubric_part = response_data  # ya es un objeto Rubric
+
+            # Extrae título e ID de forma segura, independientemente del tipo
+            if hasattr(rubric_part, 'title') and hasattr(rubric_part, 'id'):
+                title = rubric_part.title
+                rubric_id = rubric_part.id
+                logger.info(f"Rúbrica '{title}' creada con ID {rubric_id}.")
+            elif isinstance(rubric_part, dict):
+                title = rubric_part.get("title", "Sin Título")
+                rubric_id = rubric_part.get("id")
+                if rubric_id:
+                    logger.info(f"Rúbrica '{title}' creada con ID {rubric_id}.")
+                else:
+                    logger.warning(f"Rúbrica creada, pero no se pudo determinar el ID. Respuesta: {response_data}")
+            else:
+                logger.warning(f"Rúbrica creada, pero la respuesta tuvo un formato inesperado: {response_data}")
+
+            return True
+
+        except CanvasException as e:
+            try:
+                message = str(e)
+                if hasattr(e, 'response') and e.response.status_code != 500:
+                    message = e.response.json().get('errors', str(e))
+            except (AttributeError, ValueError, KeyError):
+                message = str(e)
+            self.error_message = f"Error de la API de Canvas al crear la rúbrica: {message}"
+            logger.error(self.error_message, exc_info=True)
+            return False
+        except Exception as e:
+            self.error_message = f"Error inesperado al crear la rúbrica: {e}"
+            self.logger.error(self.error_message, exc_info=True)
+            return False
 
     def export_rubric_to_json(self, course_id: int, rubric_id: int, out_path: Path) -> bool:
         """Descarga una rúbrica y la guarda en formato JSON."""

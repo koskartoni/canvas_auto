@@ -230,7 +230,7 @@ class RubricsMenu(ctk.CTkFrame):
     def handle_import_rubric(self):
         file_path = filedialog.askopenfilename(
             title="Seleccionar archivo de rúbrica",
-            filetypes=[("Archivos CSV", "*.csv"), ("Archivos JSON", "*.json")]
+            filetypes=[("Archivos JSON", "*.json"), ("Archivos CSV", "*.csv")]
         )
         if not file_path:
             return

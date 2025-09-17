@@ -95,10 +95,13 @@ class QuizzesMenu(ctk.CTkFrame):
                     raise ValueError("JSON no válido: usa lista de preguntas o {'items': [...]}.")
 
                 for i, q in enumerate(items, start=1):
-                    if "question" not in q or "choices" not in q:
-                        raise ValueError(f"Pregunta {i} incompleta: falta 'question' o 'choices'.")
+                    if not all(k in q for k in ["question", "choices", "correct"]):
+                        raise ValueError(f"Pregunta {i} incompleta: debe tener 'question', 'choices' y 'correct'.")
                     if not q["choices"]:
-                        raise ValueError(f"Pregunta {i}: 'choices' vacío.")
+                        raise ValueError(f"Pregunta {i}: 'choices' no puede estar vacío.")
+                    if not str(q["correct"]).strip():
+                        raise ValueError(f"Pregunta {i}: 'correct' no puede estar vacío.")
+
             except Exception as exc:
                 messagebox.showerror("JSON inválido", f"No se pudo leer el JSON de preguntas:\n{exc}")
                 return
@@ -108,7 +111,8 @@ class QuizzesMenu(ctk.CTkFrame):
             if items:
                 success = self.client.create_new_quiz_and_items(self.course_id, settings, items)
             else:
-                success = self.client.create_new_quiz(self.course_id, settings)
+                quiz_obj = self.client._create_new_quiz_base(self.course_id, settings)
+                success = quiz_obj is not None
         else:
             settings["quiz_type"] = "assignment"
             success = self.client.create_quiz(self.course_id, settings)
