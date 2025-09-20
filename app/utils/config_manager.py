@@ -7,14 +7,15 @@ import os
 CONFIG_FILE = "config.json"
 
 
-def save_credentials(url: str, token: str):
-    """Guarda la URL y el token en el archivo de configuración."""
+def save_credentials(url: str, token: str, gemini_api_key: str = None):
+    """Guarda las credenciales en el archivo de configuración."""
     credentials = {
         "canvas_url": url,
-        "api_token": token
+        "api_token": token,
+        "gemini_api_key": gemini_api_key or ""
     }
     try:
-        with open(CONFIG_FILE, 'w') as f:
+        with open(CONFIG_FILE, 'w', encoding="utf-8") as f:
             json.dump(credentials, f, indent=4)
         return True
     except IOError as e:
@@ -28,7 +29,7 @@ def load_credentials():
         return None
 
     try:
-        with open(CONFIG_FILE, 'r') as f:
+        with open(CONFIG_FILE, 'r', encoding="utf-8") as f:
             credentials = json.load(f)
             if "canvas_url" in credentials and "api_token" in credentials:
                 return credentials

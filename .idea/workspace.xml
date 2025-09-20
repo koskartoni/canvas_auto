@@ -4,11 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5c95a92f-e177-4e46-8733-3b40f1ef1fab" name="Changes" comment="Corregido la creación de quizzes y añadidos logs, que se puede activar y desactivar desde config.json">
+    <list default="true" id="5c95a92f-e177-4e46-8733-3b40f1ef1fab" name="Changes" comment="Arreglado rubricas">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/canvas_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/canvas_client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/gemini_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/gemini_client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/gui/activities_menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/gui/activities_menu.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/gui/login_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/gui/login_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/resources/prompt_ai_quiz.txt" beforeDir="false" afterPath="$PROJECT_DIR$/app/resources/prompt_ai_quiz.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/utils/config_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/utils/config_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/utils/event_logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/utils/event_logger.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,12 +36,12 @@
     &quot;assignee&quot;: &quot;oskarmg77&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/oskarmg77/canvas_auto&quot;,
-    &quot;accountId&quot;: &quot;0075f0f2-5cb2-43d1-ba95-5b8ca6208c9b&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/oskarmg77/canvas_auto",
+    "accountId": "0075f0f2-5cb2-43d1-ba95-5b8ca6208c9b"
   }
-}</component>
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1
 }</component>
@@ -52,27 +53,28 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.course_window.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.main_window.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "feature/rubrics-builder",
-    "last_opened_file_path": "C:/Users/koska/OneDrive/Documentos/PROYECTOS_PROGRAMACION_OSKAR/canvas_auto/docs",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.canvas_client.executor&quot;: &quot;Run&quot;,
+    &quot;Python.course_window.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main_window.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/rubrics-builder&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/koska/OneDrive/Documentos/PROYECTOS_PROGRAMACION_OSKAR/canvas_auto/docs&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\koska\OneDrive\Documentos\PROYECTOS_PROGRAMACION_OSKAR\canvas_auto\docs" />
@@ -140,7 +142,17 @@
       <workItem from="1757756829735" duration="1805000" />
       <workItem from="1757760288691" duration="2111000" />
       <workItem from="1757775912138" duration="1650000" />
-      <workItem from="1757832694592" duration="8676000" />
+      <workItem from="1757832694592" duration="8761000" />
+      <workItem from="1757915988949" duration="1009000" />
+      <workItem from="1757959890188" duration="1651000" />
+      <workItem from="1758024437088" duration="432000" />
+      <workItem from="1758101091078" duration="884000" />
+      <workItem from="1758126535971" duration="9150000" />
+      <workItem from="1758144086688" duration="452000" />
+      <workItem from="1758194592175" duration="556000" />
+      <workItem from="1758212801024" duration="1003000" />
+      <workItem from="1758266798969" duration="1905000" />
+      <workItem from="1758382043696" duration="637000" />
     </task>
     <task id="LOCAL-00001" summary="Implementa flujo de login y selección de curso">
       <option name="closed" value="true" />
@@ -294,7 +306,23 @@
       <option name="project" value="LOCAL" />
       <updated>1757835291560</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="Agragado subir notas. Falta testear">
+      <option name="closed" value="true" />
+      <created>1757842520701</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1757842520701</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Arreglado rubricas">
+      <option name="closed" value="true" />
+      <created>1758137463536</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1758137463536</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -330,12 +358,15 @@
     <MESSAGE value="Auto evaluacion cEste commit introduce una refactorización completa del proceso de evaluación con IA para mejorar drásticamente su robustez, eficiencia y resiliencia frente a los límites de la API de Gemini.&#10;&#10;Problema Anterior:&#10;- La evaluación en paralelo con muchos hilos agotaba rápidamente la cuota diaria de la API gratuita (error 429), causando que el proceso fallara prematuramente.&#10;- Se volvían a subir y a evaluar los mismos archivos en cada ejecución, consumiendo tiempo y cuota de API innecesariamente.&#10;&#10;Solución Implementada:&#10;- **Controlador de Ritmo Adaptativo:** Se introduce una clase `RateController` que limita las peticiones por segundo (QPS) y reduce dinámicamente el número de hilos de trabajo si se detectan errores de cuota. El sistema ahora se &quot;enfría&quot; y se autorregula en lugar de fallar.&#10;&#10;- **Caché de Subida de Archivos:** Se utiliza un hash (SHA256) para identificar los PDFs. Los archivos solo se suben a la API de Gemini una vez y su referencia se guarda en `.gemini_file_cache.json`, evitando subidas repetidas.&#10;&#10;- **Caché de Resultados de Evaluación:** Se añade una segunda capa de caché (`evaluaciones_cache.json`) que almacena el resultado de la evaluación para un hash de archivo específico. Si un PDF no ha cambiado, se reutiliza el resultado anterior sin contactar a la API.&#10;&#10;- **Generación de CSV Estable:** El método de guardado de CSV ahora realiza un análisis previo de todos los resultados para construir un conjunto de columnas completo y consistente, evitando la pérdida de datos.&#10;&#10;- **Cancelación de Procesos:** Se ha añadido un botón &quot;Cancelar&quot; funcional que permite al usuario detener de forma segura una evaluación en curso.on gemini v2 por lotes" />
     <MESSAGE value="Mejora en el promt" />
     <MESSAGE value="Corregido la creación de quizzes y añadidos logs, que se puede activar y desactivar desde config.json" />
-    <option name="LAST_COMMIT_MESSAGE" value="Corregido la creación de quizzes y añadidos logs, que se puede activar y desactivar desde config.json" />
+    <MESSAGE value="Agragado subir notas. Falta testear" />
+    <MESSAGE value="Arreglado rubricas" />
+    <option name="LAST_COMMIT_MESSAGE" value="Arreglado rubricas" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/canvas_auto$course_window.coverage" NAME="course_window Coverage Results" MODIFIED="1753873132715" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/gui" />
+    <SUITE FILE_PATH="coverage/canvas_auto$canvas_client.coverage" NAME="canvas_client Coverage Results" MODIFIED="1758135620817" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/api" />
     <SUITE FILE_PATH="coverage/canvas_auto$main_window.coverage" NAME="main_window Coverage Results" MODIFIED="1754314119580" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/gui" />
-    <SUITE FILE_PATH="coverage/canvas_auto$main.coverage" NAME="main Coverage Results" MODIFIED="1757842374484" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/canvas_auto$main.coverage" NAME="main Coverage Results" MODIFIED="1758266940318" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/canvas_auto$gemini_tester.coverage" NAME="gemini_tester Coverage Results" MODIFIED="1755624565131" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tools" />
   </component>
 </project>

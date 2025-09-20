@@ -7,7 +7,7 @@ Aplicación de escritorio para automatizar tareas en la plataforma Canvas LMS, c
 *   **Interfaz Gráfica Moderna**: Uso de `customtkinter` para una apariencia atractiva y fluida.
 *   **Menú Principal tipo Dashboard**: Una vez seleccionado un curso, se presenta un menú principal de tarjetas interactivas y visuales que mejoran la experiencia de usuario.
 *   **Iconos Personalizados**: Cada opción del menú cuenta con iconos únicos que representan su función.
-*   **Gestión de Credenciales**: Almacenamiento local y seguro de la URL de Canvas y el token de API.
+*   **Gestión de Credenciales Simplificada**: Solicitud y almacenamiento local de las credenciales necesarias: URL de Canvas, token de API y clave de API de Google Gemini, todo desde la interfaz de inicio.
 *   **Conexión y Verificación**: El cliente de API verifica que las credenciales sean válidas al conectarse.
 *   **Selección de Cursos**: Muestra una lista de los cursos activos del usuario para que seleccione con cuál desea trabajar, con la opción de cambiar de curso sin reiniciar la aplicación.
 *   **Módulos de Gestión por Submenús**:
@@ -31,7 +31,7 @@ Aplicación de escritorio para automatizar tareas en la plataforma Canvas LMS, c
         *   **Evaluación Asistida por IA (Gemini)**:
             *   Opción para evaluar automáticamente las entregas en PDF que tengan una rúbrica asociada.
             *   Utiliza un modelo multimodal (Gemini 1.5) para analizar el contenido del documento.
-            *   **Selección de Modelo de IA**: Permite seleccionar el modelo de Gemini a utilizar (`gemini-2.5-pro` por defecto).
+            *   **Selección de Modelo de IA**: Permite seleccionar el modelo de Gemini a utilizar (`gemini-1.5-pro` por defecto).
             *   Genera un archivo `evaluaciones_gemini.csv` con las puntuaciones y justificaciones detalladas para cada criterio.
         *   **Revisión y Carga de Calificaciones**:
             *   Nueva pestaña "Revisar y Cargar Notas" para gestionar el ciclo de calificación final.
@@ -116,9 +116,12 @@ canvas_auto/
     ```
 
 4.  **Configurar las credenciales:**
-    La primera vez que ejecutes la aplicación, se te pedirá tu URL de Canvas y un Token de API. Estos datos se guardarán en un archivo `config.json`.
-
-    Para usar la función de **evaluación con IA**, debes añadir tu clave de API de Google Gemini a este archivo. Edita `config.json` para que tenga la siguiente estructura:
+    La primera vez que ejecutes la aplicación, se abrirá una ventana de configuración donde se te pedirá:
+    *   Tu URL de Canvas.
+    *   Un Token de API de Canvas.
+    *   Tu clave de API de Google Gemini (opcional, para la evaluación con IA).
+    
+    Estos datos se guardarán en un archivo `config.json` para futuras sesiones. Opcionalmente, puedes editar este archivo más tarde para ajustar configuraciones avanzadas como el nivel de logs:
     ```json
     {
         "canvas_url": "https://tu-institucion.instructure.com",

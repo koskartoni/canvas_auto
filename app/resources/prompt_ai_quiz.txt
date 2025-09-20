@@ -20,7 +20,7 @@ Formato EXACTO de salida:
 
 Reglas:
 1) Usa comillas ASCII dobles " en todo el JSON.
-2) "items" debe contener exactamente 10 objetos.
+2) "items" debe contener exactamente tantos objetos como numero de preguntas definidas..
 3) En cada objeto:
    - "question": string (sin numeración ni etiquetas).
    - "choices": array de 4 strings; no repitas opciones; no antepongas A) B)...

@@ -1,12 +1,26 @@
 import logging
 import functools
 from . import config_manager
+import os
+import sys
 
 # Creamos un logger específico para eventos de la GUI
 event_logger = logging.getLogger("event_logger")
 
+# --- Solución al problema del .exe ---
+# Determinar la ruta base de la aplicación.
+# Si está compilado ('frozen'), la base es el directorio del .exe.
+# Si no, es la raíz del proyecto (asumiendo que este archivo está en app/utils/).
+if getattr(sys, 'frozen', False):
+    application_path = os.path.dirname(sys.executable)
+else:
+    application_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+log_dir = os.path.join(application_path, "logs")
+os.makedirs(log_dir, exist_ok=True)  # Crea el directorio 'logs' si no existe.
+
 # Configuramos un handler para que estos logs vayan a un archivo separado
-log_file_path = "logs/gui_events.log"
+log_file_path = os.path.join(log_dir, "gui_events.log")
 file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 file_handler.setFormatter(formatter)
