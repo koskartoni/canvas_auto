@@ -7,3 +7,4 @@ requests~=2.32.4
 pillow~=11.3.0
 pydantic>=2.0
 requests==2.32.4
+pyperclip~=1.9.0
