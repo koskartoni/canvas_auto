@@ -137,15 +137,27 @@ class ActivitiesMenu(ctk.CTkFrame):
             chk.pack(anchor="w", padx=10, pady=5)
             self.submission_checkboxes[key] = var
 
-        # --- Descripción y Botón ---
+        # --- Descripción ---
         desc_label = ctk.CTkLabel(activity_tab, text="Descripción:")
         desc_label.grid(row=3, column=0, padx=20, pady=10, sticky="nw")
         self.activity_desc_textbox = ctk.CTkTextbox(activity_tab, height=150)
         self.activity_desc_textbox.grid(row=3, column=1, padx=20, pady=10, sticky="nsew")
         activity_tab.grid_rowconfigure(3, weight=1)
 
-        create_button = ctk.CTkButton(activity_tab, text="Crear Actividad", command=self.handle_create_activity)
-        create_button.grid(row=4, column=1, padx=20, pady=20, sticky="e")
+        # --- Publicar y Botón ---
+        bottom_frame = ctk.CTkFrame(activity_tab, fg_color="transparent")
+        bottom_frame.grid(row=4, column=0, columnspan=2, padx=20, pady=20, sticky="ew")
+        bottom_frame.grid_columnconfigure(1, weight=1)
+
+        self.publish_switch_var = ctk.StringVar(value="1")
+        self.publish_switch = ctk.CTkSwitch(
+            bottom_frame, text="Publicar al crear",
+            variable=self.publish_switch_var, onvalue="1", offvalue="0"
+        )
+        self.publish_switch.grid(row=0, column=0, sticky="w")
+
+        create_button = ctk.CTkButton(bottom_frame, text="Crear Actividad", command=self.handle_create_activity)
+        create_button.grid(row=0, column=1, sticky="e")
 
     def setup_download_tab(self):
         download_tab = self.tab_view.tab("Descargar Entregas")
@@ -200,6 +212,13 @@ class ActivitiesMenu(ctk.CTkFrame):
         load_csv_button = ctk.CTkButton(action_frame, text="Cargar CSV de Evaluaciones", command=self.handle_load_csv)
         load_csv_button.pack(side="left", padx=10, pady=5)
 
+        template_button = ctk.CTkButton(
+            action_frame, text="Generar Plantilla CSV",
+            command=self._generate_csv_template,
+            fg_color="#555555", hover_color="#666666"
+        )
+        template_button.pack(side="left", padx=5, pady=5)
+
         self.upload_button = ctk.CTkButton(action_frame, text="Publicar Notas Seleccionadas en Canvas", command=self.handle_upload_grades, state="disabled")
         self.upload_button.pack(side="right", padx=10, pady=5)
 
@@ -208,71 +227,206 @@ class ActivitiesMenu(ctk.CTkFrame):
         self.review_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
     def handle_load_csv(self):
-        # 1. Abrir un diálogo para que el usuario seleccione el archivo `evaluaciones_gemini.csv`.
-        file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
+        """Carga un CSV de evaluaciones y muestra una tabla editable para revisión."""
+        file_path = filedialog.askopenfilename(
+            title="Seleccionar CSV de evaluaciones",
+            filetypes=[("CSV Files", "*.csv"), ("Todos los archivos", "*.*")]
+        )
         if not file_path:
             return
 
         # Limpiar la vista anterior
         for widget in self.review_frame.winfo_children():
             widget.destroy()
+        self.evaluation_rows = []
 
-        # 2. Leer el CSV y crear los widgets para cada fila.
-        #    self.evaluation_rows = [] # Una lista para mantener referencias a los widgets de cada fila
-        #    ... (lógica de lectura y creación de CTkEntry, CTkCheckBox, etc.)
-        #    Por cada fila del CSV, guarda en una lista: el user_id, los criterion_id,
-        #    y las referencias a los widgets de puntos y comentarios para poder leer sus valores después.
-        
-        self.upload_button.configure(state="normal") # Activa el botón de subida
+        try:
+            with open(file_path, "r", encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                fieldnames = reader.fieldnames or []
+                rows = list(reader)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo leer el CSV:\n{e}")
+            return
+
+        if not rows:
+            messagebox.showinfo("Información", "El CSV está vacío.")
+            return
+
+        # Verificar columnas mínimas
+        has_user_id = "user_id" in fieldnames
+        has_alumno = "alumno" in fieldnames
+        has_nota = "nota" in fieldnames
+        has_comentario = "comentario" in fieldnames
+
+        if not has_alumno and not has_user_id:
+            messagebox.showerror("Error", "El CSV debe contener al menos una columna 'alumno' o 'user_id'.")
+            return
+
+        # Configurar columnas del grid
+        self.review_frame.grid_columnconfigure(0, weight=0)  # Checkbox
+        self.review_frame.grid_columnconfigure(1, weight=0)  # user_id
+        self.review_frame.grid_columnconfigure(2, weight=1)  # Alumno
+        self.review_frame.grid_columnconfigure(3, weight=0)  # Nota
+        self.review_frame.grid_columnconfigure(4, weight=1)  # Comentario
+
+        # Encabezados
+        headers = ["✓", "User ID", "Alumno", "Nota", "Comentario"]
+        for col, header_text in enumerate(headers):
+            lbl = ctk.CTkLabel(
+                self.review_frame, text=header_text,
+                font=ctk.CTkFont(size=12, weight="bold")
+            )
+            lbl.grid(row=0, column=col, padx=5, pady=(5, 10), sticky="w")
+
+        # Filas de datos
+        for row_idx, row_data in enumerate(rows, start=1):
+            user_id_val = row_data.get("user_id", "").strip()
+            alumno_val = row_data.get("alumno", "").strip()
+            nota_val = row_data.get("nota", "").strip()
+            comentario_val = row_data.get("comentario", "").strip()
+
+            # Checkbox para seleccionar
+            chk_var = ctk.StringVar(value="1")
+            chk = ctk.CTkCheckBox(self.review_frame, text="", variable=chk_var, onvalue="1", offvalue="0", width=30)
+            chk.grid(row=row_idx, column=0, padx=5, pady=2)
+
+            # User ID (label, no editable)
+            uid_label = ctk.CTkLabel(self.review_frame, text=user_id_val, width=60)
+            uid_label.grid(row=row_idx, column=1, padx=5, pady=2, sticky="w")
+
+            # Nombre del alumno (label, no editable)
+            name_label = ctk.CTkLabel(self.review_frame, text=alumno_val, anchor="w")
+            name_label.grid(row=row_idx, column=2, padx=5, pady=2, sticky="ew")
+
+            # Nota (editable)
+            grade_entry = ctk.CTkEntry(self.review_frame, width=70)
+            grade_entry.insert(0, nota_val)
+            grade_entry.grid(row=row_idx, column=3, padx=5, pady=2)
+
+            # Comentario (editable)
+            comment_entry = ctk.CTkEntry(self.review_frame)
+            comment_entry.insert(0, comentario_val)
+            comment_entry.grid(row=row_idx, column=4, padx=5, pady=2, sticky="ew")
+
+            self.evaluation_rows.append({
+                "user_id": user_id_val,
+                "student_name": alumno_val,
+                "checkbox": chk_var,
+                "grade_entry": grade_entry,
+                "comment_entry": comment_entry,
+            })
+
+        logger.info(f"CSV cargado con {len(self.evaluation_rows)} filas desde '{file_path}'.")
+        self.upload_button.configure(state="normal")
         
     def handle_upload_grades(self):
+        """Recoge las calificaciones de la tabla de revisión y las sube a Canvas."""
         if not self.selected_assignment_id:
-            messagebox.showerror("Error", "No hay una actividad seleccionada.")
+            messagebox.showerror("Error", "No hay una actividad seleccionada.\n\nVe a la pestaña 'Descargar Entregas' y selecciona una actividad primero.")
             return
 
-        # Lista para guardar los datos a subir
-        grades_to_upload = []
+        if not self.evaluation_rows:
+            messagebox.showinfo("Información", "No hay evaluaciones cargadas. Carga un CSV primero.")
+            return
 
-        # 1. Recorre los datos de la tabla que has mostrado en la GUI
-        # for row_data in self.evaluation_rows:
-        #     if row_data['checkbox'].get() == "1": # Si está seleccionado
-        #         rubric_assessment = {}
-        #         # Reconstruye el diccionario de la rúbrica con los valores de los CTkEntry
-        #         for criterion_id, points_entry in row_data['criteria_entries'].items():
-        #             rubric_assessment[criterion_id] = {'points': points_entry.get()}
-            
-        #         grades_to_upload.append({
-        #             'user_id': row_data['user_id'],
-        #             'comment': row_data['comment_textbox'].get("1.0", "end-c"),
-        #             'rubric_assessment': rubric_assessment
-        #         })
+        # Recoger las filas seleccionadas
+        grades_to_upload = []
+        for row_data in self.evaluation_rows:
+            if row_data["checkbox"].get() == "1":
+                user_id = row_data["user_id"]
+                grade = row_data["grade_entry"].get().strip()
+                comment = row_data["comment_entry"].get().strip()
+
+                if not user_id:
+                    logger.warning(f"Fila de '{row_data['student_name']}' sin user_id, saltando.")
+                    continue
+                if not grade:
+                    logger.warning(f"Fila de '{row_data['student_name']}' sin nota, saltando.")
+                    continue
+
+                grades_to_upload.append({
+                    "user_id": int(user_id),
+                    "student_name": row_data["student_name"],
+                    "posted_grade": grade,
+                    "comment": comment if comment else None,
+                })
 
         if not grades_to_upload:
-            messagebox.showinfo("Información", "No has seleccionado ninguna calificación para subir.")
+            messagebox.showinfo("Información", "No hay calificaciones válidas seleccionadas para subir.")
             return
 
-        # 2. Inicia el proceso de subida en un hilo para no bloquear la interfaz
+        # Confirmación del usuario
+        confirm = messagebox.askyesno(
+            "Confirmar Publicación",
+            f"Se van a publicar las calificaciones de {len(grades_to_upload)} estudiantes "
+            f"en la actividad seleccionada.\n\n¿Deseas continuar?"
+        )
+        if not confirm:
+            return
+
+        # Limpiar la cola y preparar la UI
+        while not self.queue.empty():
+            self.queue.get_nowait()
+
+        self.main_window.update_status("Subiendo calificaciones...")
+        self.main_window.show_progress_bar()
+        self.upload_button.configure(state="disabled")
+
         self.active_thread = threading.Thread(
-            target=self._upload_grades_worker, 
-            args=(self.selected_assignment_id, grades_to_upload)
+            target=self._upload_grades_worker,
+            args=(self.selected_assignment_id, grades_to_upload),
+            daemon=True
         )
         self.active_thread.start()
-        # ... (usa tu sistema de cola para actualizar el progreso en la UI)
+        self.stop_polling = False
+        self._process_queue()
 
     def _upload_grades_worker(self, assignment_id, grades_to_upload):
+        """Sube las calificaciones a Canvas en un hilo secundario."""
         total = len(grades_to_upload)
-        for i, grade_data in enumerate(grades_to_upload):
-            # ... (actualiza la UI con el progreso usando self.queue)
-            
-            self.client.grade_submission_with_rubric(
-                self.course_id,
-                assignment_id,
-                grade_data['user_id'],
-                grade_data['rubric_assessment'],
-                grade_data['comment']
-            )
-        
-        # ... (envía un mensaje de finalización a la cola)
+        success_count = 0
+        error_count = 0
+
+        try:
+            for i, grade_data in enumerate(grades_to_upload):
+                if self.cancel_event.is_set():
+                    raise InterruptedError("Subida de calificaciones cancelada.")
+
+                student_name = grade_data["student_name"]
+                progress = (i + 1) / total
+                self.queue.put(("update_status", (f"Calificando a {student_name} ({i+1}/{total})",)))
+                self.queue.put(("update_progress", progress))
+
+                result = self.client.grade_submission_simple(
+                    self.course_id,
+                    assignment_id,
+                    grade_data["user_id"],
+                    grade_data["posted_grade"],
+                    grade_data["comment"]
+                )
+
+                if result:
+                    success_count += 1
+                else:
+                    error_count += 1
+                    logger.warning(f"Error al calificar a {student_name}.")
+
+            final_msg = f"Calificaciones publicadas: {success_count}/{total}"
+            if error_count > 0:
+                final_msg += f"\nErrores: {error_count}"
+            self.queue.put(("task_success", final_msg))
+
+        except InterruptedError as e:
+            logger.info(str(e))
+            self.queue.put(("update_status", (str(e), 5000)))
+        except Exception as e:
+            error_msg = f"Error durante la subida de calificaciones: {e}"
+            logger.error(error_msg, exc_info=True)
+            self.queue.put(("task_error", error_msg))
+        finally:
+            self.queue.put(("task_finished", None))
+            self.after(0, lambda: self.upload_button.configure(state="normal"))
 
     def _populate_model_selector(self):
         logger.debug("Poblando el selector de modelos de IA.")
@@ -766,5 +920,99 @@ class ActivitiesMenu(ctk.CTkFrame):
 
     @log_action
     def handle_create_activity(self):
-        # ... (implementación sin cambios)
-        pass
+        """Recoge los datos del formulario y crea una actividad en Canvas."""
+        name = self.activity_name_entry.get().strip()
+        if not name:
+            messagebox.showerror("Error", "El nombre de la actividad es obligatorio.")
+            return
+
+        # Puntos
+        points_text = self.activity_points_entry.get().strip()
+        try:
+            points = float(points_text.replace(",", ".")) if points_text else 0
+        except ValueError:
+            messagebox.showerror("Error", f"El valor de puntos '{points_text}' no es un número válido.")
+            return
+
+        # Tipos de entrega
+        selected_types = [
+            key for key, var in self.submission_checkboxes.items()
+            if var.get() == "1"
+        ]
+        if not selected_types:
+            messagebox.showwarning("Aviso", "No has seleccionado ningún tipo de entrega. Se creará la actividad con tipo 'none'.")
+
+        # Descripción
+        description = self.activity_desc_textbox.get("1.0", "end").strip()
+
+        # Publicar
+        published = self.publish_switch_var.get() == "1"
+
+        logger.info(f"Intentando crear actividad: nombre='{name}', puntos={points}, tipos={selected_types}, publicar={published}")
+
+        result = self.client.create_assignment(
+            course_id=self.course_id,
+            name=name,
+            points_possible=points,
+            submission_types=selected_types if selected_types else None,
+            description=description,
+            published=published
+        )
+
+        if result:
+            assignment_id = result.get('id')
+            pub_status = 'publicada' if result.get('published') else 'borrador'
+            messagebox.showinfo(
+                "Actividad Creada",
+                f"La actividad '{name}' se ha creado con éxito (ID: {assignment_id}).\n"
+                f"Estado: {pub_status}"
+            )
+            self.main_window.update_status(f"Actividad '{name}' creada correctamente.", 5000)
+            # Limpiar el formulario
+            self.activity_name_entry.delete(0, "end")
+            self.activity_points_entry.delete(0, "end")
+            self.activity_desc_textbox.delete("1.0", "end")
+            for var in self.submission_checkboxes.values():
+                var.set("0")
+        else:
+            messagebox.showerror(
+                "Error al Crear Actividad",
+                f"No se pudo crear la actividad.\n\n{self.client.error_message}"
+            )
+
+    @log_action
+    def _generate_csv_template(self):
+        """Genera una plantilla CSV con la lista de alumnos para que el profesor rellene las notas."""
+        if not self.selected_assignment_id:
+            messagebox.showerror(
+                "Error",
+                "Primero selecciona una actividad en la pestaña 'Descargar Entregas'."
+            )
+            return
+
+        save_path = filedialog.asksaveasfilename(
+            title="Guardar plantilla CSV",
+            defaultextension=".csv",
+            filetypes=[("CSV Files", "*.csv")],
+            initialfile=f"plantilla_notas_{self.selected_assignment_id}.csv"
+        )
+        if not save_path:
+            return
+
+        result = self.client.generate_grades_csv_template(
+            self.course_id,
+            self.selected_assignment_id,
+            Path(save_path)
+        )
+
+        if result:
+            messagebox.showinfo(
+                "Plantilla Generada",
+                f"La plantilla CSV se ha guardado en:\n{save_path}\n\n"
+                "Rellena las columnas 'nota' y 'comentario' y luego cárgala con el botón 'Cargar CSV'."  
+            )
+        else:
+            messagebox.showerror(
+                "Error",
+                f"No se pudo generar la plantilla.\n\n{self.client.error_message}"
+            )

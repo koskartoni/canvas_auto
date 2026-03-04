@@ -399,6 +399,154 @@ class CanvasClient:
             logger.error(self.error_message, exc_info=True)
             return False
 
+    def create_assignment(self, course_id: int, name: str, points_possible: float = 0,
+                          submission_types: list = None, description: str = "",
+                          published: bool = True, grading_type: str = "points") -> dict | None:
+        """
+        Crea una nueva actividad en un curso de Canvas.
+        
+        Args:
+            course_id: ID del curso.
+            name: Nombre de la actividad (requerido).
+            points_possible: Puntuación máxima.
+            submission_types: Lista de tipos de entrega (ej: ["online_upload", "online_text_entry"]).
+            description: Descripción en HTML.
+            published: Si True, la actividad se publica inmediatamente.
+            grading_type: Tipo de calificación: "points", "percent", "letter_grade", "pass_fail", "not_graded".
+        
+        Returns:
+            Diccionario con los datos de la actividad creada, o None si hubo error.
+        """
+        if not self.canvas:
+            return None
+        
+        self.logger.info(f"Creando actividad '{name}' en curso {course_id} (publicar={published}).")
+        
+        if not submission_types:
+            submission_types = ["none"]
+        
+        payload = {
+            "assignment": {
+                "name": name,
+                "points_possible": points_possible,
+                "submission_types": submission_types,
+                "description": description,
+                "published": published,
+                "grading_type": grading_type,
+            }
+        }
+        
+        url = f"{self.canvas_url}/api/v1/courses/{course_id}/assignments"
+        self.logger.debug(f"Payload para crear actividad: {json.dumps(payload)}")
+        
+        try:
+            response = requests.post(url, headers=self._auth_headers(), json=payload, timeout=30)
+            response.raise_for_status()
+            assignment_data = response.json()
+            self.logger.info(
+                f"Actividad '{assignment_data.get('name')}' creada con ID {assignment_data.get('id')} "
+                f"(publicada={'Sí' if assignment_data.get('published') else 'No'})."
+            )
+            return assignment_data
+        except requests.exceptions.HTTPError as e:
+            error_body = ""
+            try:
+                error_body = e.response.json()
+            except (ValueError, AttributeError):
+                error_body = e.response.text if e.response else str(e)
+            self.error_message = f"Error HTTP al crear actividad: {e.response.status_code} - {error_body}"
+            self.logger.error(self.error_message, exc_info=True)
+            return None
+        except requests.exceptions.RequestException as e:
+            self.error_message = f"Error de red al crear actividad: {e}"
+            self.logger.error(self.error_message, exc_info=True)
+            return None
+
+    def grade_submission_simple(self, course_id: int, assignment_id: int, user_id: int,
+                                posted_grade: str, comment: str = None) -> bool:
+        """
+        Califica la entrega de un estudiante con una nota numérica simple y un comentario opcional.
+        Usa la API REST directamente (PUT /submissions/:user_id).
+        
+        Args:
+            course_id: ID del curso.
+            assignment_id: ID de la actividad.
+            user_id: ID del estudiante.
+            posted_grade: Puntuación como string (ej: "8.5", "90%", "A").
+            comment: Comentario textual opcional.
+        """
+        self.logger.info(f"Calificando entrega simple para user_id {user_id} en assignment_id {assignment_id} con nota '{posted_grade}'.")
+        if not self.canvas:
+            return False
+
+        url = (f"{self.canvas_url}/api/v1/courses/{course_id}/assignments/"
+               f"{assignment_id}/submissions/{user_id}")
+
+        payload = {
+            "submission": {
+                "posted_grade": str(posted_grade)
+            }
+        }
+        if comment:
+            payload["comment"] = {"text_comment": comment}
+
+        self.logger.debug(f"Payload de calificación simple para user_id {user_id}: {json.dumps(payload)}")
+
+        try:
+            response = requests.put(url, headers=self._auth_headers(), json=payload, timeout=30)
+            response.raise_for_status()
+            self.logger.info(f"Entrega para user_id {user_id} calificada con éxito (nota: {posted_grade}).")
+            return True
+        except requests.exceptions.HTTPError as e:
+            self.error_message = f"Error HTTP al calificar user_id {user_id}: {e.response.status_code}"
+            self.logger.error(self.error_message, exc_info=True)
+            return False
+        except requests.exceptions.RequestException as e:
+            self.error_message = f"Error de red al calificar user_id {user_id}: {e}"
+            self.logger.error(self.error_message, exc_info=True)
+            return False
+
+    def generate_grades_csv_template(self, course_id: int, assignment_id: int, out_path: Path) -> bool:
+        """
+        Genera una plantilla CSV con la lista de estudiantes de una actividad,
+        lista para que el profesor rellene las calificaciones manualmente.
+        
+        Columnas: user_id, alumno, nota, comentario
+        """
+        self.logger.info(f"Generando plantilla CSV de calificaciones para actividad {assignment_id}.")
+        try:
+            submissions = self.get_all_submissions(course_id, assignment_id)
+            if not submissions:
+                self.error_message = "No se encontraron entregas para generar la plantilla."
+                self.logger.warning(self.error_message)
+                return False
+
+            os.makedirs(out_path.parent, exist_ok=True)
+            with out_path.open("w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.writer(f)
+                writer.writerow(["user_id", "alumno", "nota", "comentario"])
+                
+                seen_users = set()
+                for sub in submissions:
+                    user_id = sub.get("user_id")
+                    if user_id in seen_users:
+                        continue
+                    seen_users.add(user_id)
+                    
+                    user_name = sub.get("user", {}).get("name", f"Usuario {user_id}")
+                    writer.writerow([user_id, user_name, "", ""])
+
+            self.logger.info(f"Plantilla CSV generada con {len(seen_users)} estudiantes en '{out_path}'.")
+            return True
+        except IOError as e:
+            self.error_message = f"Error de escritura al generar la plantilla CSV: {e}"
+            self.logger.error(self.error_message, exc_info=True)
+            return False
+        except Exception as e:
+            self.error_message = f"Error inesperado al generar la plantilla CSV: {e}"
+            self.logger.error(self.error_message, exc_info=True)
+            return False
+
     # --------------------------------------------------------------------- #
     # 4. Rúbricas
     # --------------------------------------------------------------------- #
