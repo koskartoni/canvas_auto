@@ -343,10 +343,18 @@ class CanvasClient:
                 item_response = requests.post(item_url, headers=self._auth_headers(), json=payload, timeout=30)
                 item_response.raise_for_status()
 
+            except requests.exceptions.HTTPError as e:
+                # Captura errores HTTP para dar un mensaje más claro
+                error_detail = f"Error al añadir pregunta {i}: {e.response.status_code}"
+                try:
+                    # Intenta obtener el mensaje de error específico de la API de Canvas
+                    error_detail += f" - {e.response.json().get('errors', [{}])[0].get('message', e.response.text)}"
+                except (json.JSONDecodeError, IndexError, KeyError):
+                    error_detail += f" - Response: {e.response.text}"
+                errors.append(error_detail)
+                self.logger.error(error_detail, exc_info=True)
             except requests.exceptions.RequestException as e:
                 error_detail = f"Error al añadir pregunta {i}: {e}"
-                if e.response is not None:
-                    error_detail += f" - Response: {e.response.text}"
                 errors.append(error_detail)
                 self.logger.error(error_detail, exc_info=True)
 

@@ -1,32 +1,45 @@
-Genera un examen de opción múltiple para Canvas New Quizzes y devuélvelo EXCLUSIVAMENTE en JSON válido, sin texto adicional, sin Markdown ni ```.
+Rol: Actúa como un Asistente Experto en Evaluación Educativa y Diseño Instruccional para Canvas LMS.
 
-Parámetros:
-- Tema: [describe el tema aquí]
-- Número de preguntas: 10
-- Opciones por pregunta: 4
-- Idioma: Español (España)
+Objetivo: Tu meta final es generar un archivo JSON válido para "Canvas New Quizzes" basado en los PDFs que te he adjuntado, pero NO debes generarlo todavía. Primero necesitamos configurar el examen.
 
-Formato EXACTO de salida:
+INSTRUCCIONES DE FLUJO DE TRABAJO:
+
+PASO 1: ANÁLISIS Y ENTREVISTA (Tu tarea actual)
+
+Analiza los nombres y el contenido general de los documentos PDF adjuntos.
+
+DETENTE. No generes el examen aún.
+
+Responde a este mensaje listando los archivos detectados y haciéndome las siguientes preguntas para configurar el examen:
+
+¿Cuántas preguntas deseas extraer de cada documento específico? (Lista los nombres de los archivos para que yo pueda poner el número al lado).
+
+¿Qué nivel de dificultad prefieres? (Baja: Recordar/Comprender, Media: Aplicar/Analizar, Alta: Evaluar/Crear).
+
+¿Hay algún tema específico dentro de los documentos en el que deba enfocarme?
+
+PASO 2: GENERACIÓN (A ejecutar SOLO cuando yo responda a tus preguntas) Una vez que yo te responda con los números y la dificultad, procederás inmediatamente a generar el JSON siguiendo estas REGLAS ESTRICTAS:
+
+Formato: Devuelve EXCLUSIVAMENTE un objeto JSON válido. Sin bloques de código Markdown (```), sin texto introductorio, sin conclusiones. Solo el JSON "raw".
+
+Estructura del JSON:
+
+JSON
+
 {
   "items": [
     {
       "question": "Texto de la pregunta",
-      "choices": ["Opción A", "Opción B", "Opción C", "Opción D"],
+      "choices": ["Opción 1", "Opción 2", "Opción 3", "Opción 4"],
       "correct": "A",
       "points": 1
     }
   ]
 }
+(Nota: "correct" debe ser la letra A, B, C o D que corresponde al índice de la respuesta correcta en el array "choices". A=0, B=1, etc. Distribuye la respuesta correcta aleatoriamente, no siempre debe ser la A).
 
-Reglas:
-1) Usa comillas ASCII dobles " en todo el JSON.
-2) "items" debe contener exactamente tantos objetos como numero de preguntas definidas..
-3) En cada objeto:
-   - "question": string (sin numeración ni etiquetas).
-   - "choices": array de 4 strings; no repitas opciones; no antepongas A) B)...
-   - "correct": una letra A/B/C/D que coincida con la opción correcta.
-   - "points": número (por defecto 1).
-4) No incluyas soluciones al final, ni explicaciones, ni claves extra.
-5) No uses Markdown, HTML ni tipografía especial.
+Contenido: Basado estrictamente en los PDFs, respetando la dificultad y cantidad solicitada.
 
-Devuelve SOLO el JSON.
+Sintaxis: Usa comillas dobles ASCII (") para asegurar la validez del JSON.
+
+Por favor, inicia ahora el PASO 1.
