@@ -106,16 +106,11 @@ class CriterionFrame(ctk.CTkFrame):
 
 
 class RubricsMenu(ctk.CTkFrame):
-    def __init__(self, parent, client, course_id, back_callback):
+    def __init__(self, parent, client, course_id):
         super().__init__(parent)
         self.client = client
         self.course_id = course_id
-        self.back_callback = back_callback
         self.imported_criteria: list[dict] | None = None    # ← almacena lo cargado
-
-
-        back_button = ctk.CTkButton(self, text="< Volver al Menú Principal", command=self.back_callback)
-        back_button.pack(anchor="nw", padx=10, pady=10)
 
         self.tab_view = ctk.CTkTabview(self, anchor="w")
         self.tab_view.pack(expand=True, fill="both", padx=10, pady=(0, 10))

@@ -10,18 +10,13 @@ from app.utils.logger_config import logger
 from app.utils.path_utils import resource_path
 
 class QuizzesMenu(ctk.CTkFrame):
-    def __init__(self, parent, client, course_id, back_callback):
+    def __init__(self, parent, client, course_id):
         super().__init__(parent)
         self.client = client
         self.course_id = course_id
-        self.back_callback = back_callback
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
-
-        # Botón para volver al menú principal
-        back_button = ctk.CTkButton(self, text="< Volver al Menú Principal", command=self.back_callback)
-        back_button.pack(anchor="nw", padx=10, pady=10)
 
         # Pestañas para Quizzes
         self.tab_view = ctk.CTkTabview(self, anchor="w")

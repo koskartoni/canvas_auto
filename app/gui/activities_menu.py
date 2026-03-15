@@ -93,9 +93,6 @@ class ActivitiesMenu(ctk.CTkFrame):
 
         logger.debug("Inicializando ActivitiesMenu.")
 
-        back_button = ctk.CTkButton(self, text="< Volver al Menú Principal", command=self.main_window.show_main_menu)
-        back_button.pack(anchor="nw", padx=10, pady=10)
-
         container = ctk.CTkFrame(self)
         container.pack(expand=True, fill="both", padx=10, pady=(0, 10))
 
