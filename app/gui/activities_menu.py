@@ -903,17 +903,107 @@ class ActivitiesMenu(ctk.CTkFrame):
                 logger.error(f"No se pudo eliminar el archivo remoto {data.get('file').name}: {e}")
 
     def _save_evaluations_to_csv(self, evaluations: list, csv_path: Path, rubric_json: dict):
-        if not evaluations: return
-        # ... (implementación sin cambios)
-        pass
+        """Guarda los resultados de la evaluación de Gemini en un archivo CSV, alineado con la rúbrica."""
+        if not evaluations:
+            logger.warning("No se generaron evaluaciones para guardar en CSV.")
+            return
+
+        try:
+            # 1. Definir las columnas y el orden a partir de la rúbrica oficial
+            official_criteria = []
+            for crit in rubric_json.get('data', []):
+                crit_name = crit.get('description', f"criterio_id_{crit.get('id', 'unk')}").strip()
+                # Saneamos el nombre para usarlo como base de la columna
+                sanitized_name = re.sub(r'\s+', '_', crit_name.lower())
+                sanitized_name = re.sub(r'[^a-zA-Z0-9_]', '', sanitized_name)
+                official_criteria.append({'original': crit_name, 'sanitized': sanitized_name})
+
+            # 2. Construir las cabeceras del CSV
+            fieldnames = ['alumno']
+            for crit in official_criteria:
+                base_name = crit['sanitized']
+                fieldnames.append(f"{base_name}_puntuacion")
+                fieldnames.append(f"{base_name}_categoria")
+                fieldnames.append(f"{base_name}_justificacion")
+            fieldnames.extend(['puntuacion_total', 'resumen_cualitativo'])
+
+            with csv_path.open('w', newline='', encoding='utf-8-sig') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+                writer.writeheader()
+
+                # 3. Procesar cada evaluación para llenar las filas
+                for result in evaluations:
+                    row = {'alumno': result.get('alumno', 'N/A')}
+                    total_score = 0.0
+
+                    # Crear un mapa de las evaluaciones de Gemini para fácil acceso
+                    gemini_evals_map = {
+                        item.get('criterio', '').strip(): item
+                        for item in result.get('evaluacion', [])
+                    }
+
+                    # Iterar sobre los criterios OFICIALES para asegurar el orden y la consistencia
+                    for crit_info in official_criteria:
+                        crit_name_original = crit_info['original']
+                        crit_name_sanitized = crit_info['sanitized']
+
+                        # Buscar la evaluación de Gemini que corresponde a este criterio oficial
+                        gemini_eval = gemini_evals_map.get(crit_name_original)
+
+                        if gemini_eval:
+                            score = gemini_eval.get('puntuacion')
+                            if isinstance(score, (int, float)):
+                                total_score += score
+                            row[f"{crit_name_sanitized}_puntuacion"] = score
+                            row[f"{crit_name_sanitized}_categoria"] = gemini_eval.get('categoria', '')
+                            row[f"{crit_name_sanitized}_justificacion"] = gemini_eval.get('justificacion', '')
+                        else:
+                            # El criterio oficial no fue devuelto por Gemini, dejar en blanco
+                            row[f"{crit_name_sanitized}_puntuacion"] = ''
+                            row[f"{crit_name_sanitized}_categoria"] = 'FALTANTE'
+                            row[f"{crit_name_sanitized}_justificacion"] = 'Este criterio no fue evaluado por la IA.'
+
+                    row['puntuacion_total'] = total_score
+                    row['resumen_cualitativo'] = result.get('resumen_cualitativo', '')
+                    writer.writerow(row)
+
+            logger.info(f"Resultados de la evaluación guardados en: {csv_path}")
+
+        except Exception as e:
+            logger.error(f"Error al guardar el archivo CSV de evaluaciones: {e}", exc_info=True)
+            # Informar al usuario en el hilo principal
+            self.after(0, messagebox.showerror, "Error de Escritura", f"No se pudo guardar el archivo CSV de resultados: {e}")
 
     def _create_abbreviation(self, text: str) -> str:
-        # ... (implementación sin cambios)
-        pass
+        """Crea una abreviatura a partir de un texto, usando las iniciales de las palabras significativas."""
+        # Elimina contenido entre paréntesis o después de un guion, que suelen ser códigos.
+        text_cleaned = re.sub(r'\(.*\)|-.*', '', text).strip()
+        # Palabras a ignorar para no generar abreviaturas como "TAREADS" (Tarea de Sistemas)
+        ignore_words = {'de', 'la', 'el', 'y', 'a', 'en', 'los', 'las', 'con', 'para', 'un', 'una', 'del'}
+
+        # Tomamos la primera letra de cada palabra que no esté en la lista de ignoradas y no sea vacía.
+        words = [word[0].upper() for word in text_cleaned.split() if word.lower() not in ignore_words and word]
+
+        abbreviation = "".join(words)
+
+        # Si la abreviatura está vacía (p.ej. "De la a"), usamos las 3 primeras letras del texto original saneado.
+        if not abbreviation:
+            return self._sanitize_filename(text_cleaned)[:3].upper()
+
+        return abbreviation
 
     def _sanitize_filename(self, name, decode_url=False):
-        # ... (implementación sin cambios)
-        pass
+        """
+        Sanea un nombre para que sea válido como parte de una ruta de archivo.
+        Elimina caracteres ilegales. Opcionalmente, decodifica caracteres de URL.
+        """
+        if decode_url:
+            # Decodifica caracteres como %20 (espacio) o %C3%B3 (ó)
+            name = urllib.parse.unquote_plus(name)
+        # Reemplaza caracteres no válidos para nombres de archivo/carpeta
+        sanitized_name = re.sub(r'[\\/*?:"<>|]', "_", name)
+        # Elimina espacios o puntos al principio o al final, que son problemáticos en Windows
+        return sanitized_name.strip(" .")
 
     @log_action
     def handle_create_activity(self):
