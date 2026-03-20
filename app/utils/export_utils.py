@@ -15,3 +15,25 @@ def rubric_to_csv(rubric_obj, dest: Path):
             for r in c["ratings"]:
                 row += [r["description"], r.get("long_description", ""), r["points"]]
             w.writerow(row)
+
+
+def gradebook_preview_to_csv(preview_data: dict, dest: Path):
+    """Guarda un CSV a partir de la estructura normalizada de la previsualización."""
+    selected_assignments = preview_data.get("selected_assignments", [])
+    rows = preview_data.get("rows", [])
+
+    headers = ["Alumno"] + [
+        assignment.get("column_label") or assignment.get("name") or f"Actividad {assignment.get('id')}"
+        for assignment in selected_assignments
+    ]
+
+    with dest.open("w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.writer(f)
+        writer.writerow(headers)
+
+        for row in rows:
+            csv_row = [row.get("student_name", "")]
+            grades_by_assignment_id = row.get("grades_by_assignment_id", {})
+            for assignment in selected_assignments:
+                csv_row.append(grades_by_assignment_id.get(assignment.get("id"), ""))
+            writer.writerow(csv_row)
