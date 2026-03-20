@@ -4,6 +4,7 @@ import csv
 import os
 import re
 import uuid
+from collections import Counter
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import logging
@@ -11,6 +12,7 @@ import logging
 import requests
 from canvasapi import Canvas
 from canvasapi.exceptions import InvalidAccessToken, Unauthorized, CanvasException
+from app.utils.export_utils import gradebook_preview_to_csv
 
 # Usar un logger específico para este módulo
 logger = logging.getLogger(__name__)
@@ -118,6 +120,340 @@ class CanvasClient:
         url = f"/api/v1/courses/{course_id}/assignment_groups"
         params = {"include[]": "assignments", "per_page": 100}
         return self._get_paginated_data(url, params=params)
+
+    def get_gradebook_filter_options(self, course_id: int) -> dict | None:
+        """
+        Normaliza grupos y actividades para alimentar los filtros de la pestaña Libro de notas.
+        """
+        assignment_groups = self.get_assignment_groups_with_assignments(course_id)
+        if assignment_groups is None:
+            return None
+
+        normalized_groups = []
+        flat_assignments = []
+        seen_assignment_ids = set()
+
+        for group in assignment_groups or []:
+            group_id = group.get("id")
+            group_name = group.get("name") or f"Grupo {group_id}"
+            normalized_assignments = []
+
+            for assignment in group.get("assignments", []) or []:
+                if not self._is_gradebook_assignment_allowed(assignment):
+                    continue
+
+                assignment_id = assignment.get("id")
+                if assignment_id is None:
+                    continue
+
+                normalized = {
+                    "id": assignment_id,
+                    "name": assignment.get("name") or f"Actividad {assignment_id}",
+                    "group_id": group_id,
+                    "group_name": group_name,
+                }
+                normalized_assignments.append(normalized)
+
+                if assignment_id not in seen_assignment_ids:
+                    flat_assignments.append(normalized.copy())
+                    seen_assignment_ids.add(assignment_id)
+
+            if normalized_assignments:
+                normalized_groups.append(
+                    {
+                        "id": group_id,
+                        "name": group_name,
+                        "assignments": normalized_assignments,
+                    }
+                )
+
+        return {
+            "groups": normalized_groups,
+            "assignments": flat_assignments,
+        }
+
+    def _is_gradebook_assignment_allowed(self, assignment: dict) -> bool:
+        """
+        Devuelve True solo para actividades que deben aparecer en Libro de notas.
+        Excluye borradores/no publicadas y actividades no evaluables.
+        """
+        if assignment.get("published") is False:
+            return False
+
+        if assignment.get("grading_type") == "not_graded":
+            return False
+
+        if assignment.get("omit_from_final_grade") is True:
+            return False
+
+        if assignment.get("hide_in_gradebook") is True:
+            return False
+
+        return True
+
+    def resolve_gradebook_assignments(
+        self,
+        filter_options: dict,
+        selected_group_ids: List[int] | List[str],
+        selected_assignment_ids: List[int] | List[str],
+    ) -> list[dict]:
+        """
+        Resuelve la selección final de actividades a partir de grupos y actividades concretas.
+        """
+        groups = (filter_options or {}).get("groups", [])
+        assignments = (filter_options or {}).get("assignments", [])
+
+        selected_group_ids = {str(group_id) for group_id in (selected_group_ids or [])}
+        selected_assignment_ids = {str(assignment_id) for assignment_id in (selected_assignment_ids or [])}
+
+        resolved = []
+        seen_assignment_ids = set()
+
+        def add_assignment(assignment: dict):
+            assignment_id = assignment.get("id")
+            if assignment_id is None or assignment_id in seen_assignment_ids:
+                return
+            resolved.append(assignment.copy())
+            seen_assignment_ids.add(assignment_id)
+
+        for group in groups:
+            if str(group.get("id")) not in selected_group_ids:
+                continue
+            for assignment in group.get("assignments", []) or []:
+                add_assignment(assignment)
+
+        for assignment in assignments:
+            if str(assignment.get("id")) in selected_assignment_ids:
+                add_assignment(assignment)
+
+        return resolved
+
+    def get_gradebook_preview(self, course_id: int, selected_assignments: List[Dict[str, Any]]) -> dict | None:
+        """
+        Obtiene y normaliza la información necesaria para la previsualización y exportación del libro de notas.
+        """
+        if not selected_assignments:
+            self.error_message = "No se seleccionaron actividades para consultar."
+            return None
+
+        assignment_ids = [assignment["id"] for assignment in selected_assignments if assignment.get("id") is not None]
+        if not assignment_ids:
+            self.error_message = "No se pudieron resolver IDs de actividades válidos."
+            return None
+
+        self.logger.info(
+            f"Obteniendo previsualización del libro de notas para el curso {course_id} "
+            f"y {len(assignment_ids)} actividades."
+        )
+
+        display_labels = self._build_gradebook_column_labels(selected_assignments)
+        assignments_with_labels = []
+        for assignment in selected_assignments:
+            assignment_copy = assignment.copy()
+            assignment_copy["column_label"] = display_labels.get(
+                assignment_copy["id"],
+                assignment_copy.get("name") or f"Actividad {assignment_copy['id']}",
+            )
+            assignments_with_labels.append(assignment_copy)
+
+        # Intentamos primero el endpoint masivo documentado. Algunas instancias
+        # devuelven 403 "invalid assignment ids requested" incluso con IDs válidos.
+        # Si pasa eso, degradamos a consultas por actividad y agregamos localmente.
+        self.error_message = None
+        url = f"/api/v1/courses/{course_id}/students/submissions"
+        params = {
+            "student_ids[]": "all",
+            "assignment_ids[]": assignment_ids,
+            "grouped": "true",
+            "enrollment_state": "active",
+            "include[]": ["user"],
+            "per_page": 100,
+        }
+        grouped_submissions = self._get_paginated_data(url, params=params)
+        request_error = self.error_message
+
+        if request_error:
+            if "invalid assignment ids requested" in request_error.lower():
+                self.logger.warning(
+                    "La instancia de Canvas rechazó /students/submissions con assignment_ids[]. "
+                    "Se usará la ruta por actividad como fallback."
+                )
+                self.error_message = None
+                return self._get_gradebook_preview_via_assignment_submissions(course_id, assignments_with_labels)
+            return None
+
+        rows_by_student = {}
+        assignment_id_set = {assignment["id"] for assignment in assignments_with_labels}
+
+        for group in grouped_submissions:
+            if not isinstance(group, dict):
+                continue
+
+            student_key, student_name, submissions = self._extract_grouped_submission_context(group)
+            if student_key is None:
+                continue
+
+            row = rows_by_student.setdefault(
+                student_key,
+                {
+                    "student_id": student_key if isinstance(student_key, int) else None,
+                    "student_name": student_name,
+                    "grades_by_assignment_id": {},
+                },
+            )
+
+            if student_name and row["student_name"].startswith("Usuario "):
+                row["student_name"] = student_name
+
+            for submission in submissions:
+                assignment_id = submission.get("assignment_id")
+                if assignment_id not in assignment_id_set:
+                    continue
+
+                row["grades_by_assignment_id"][assignment_id] = self._format_gradebook_grade(submission)
+
+                submission_user = submission.get("user", {}) or {}
+                if submission_user.get("name") and row["student_name"].startswith("Usuario "):
+                    row["student_name"] = submission_user["name"]
+
+        rows = sorted(
+            rows_by_student.values(),
+            key=lambda row: (row.get("student_name") or "").casefold(),
+        )
+
+        return {
+            "selected_assignments": assignments_with_labels,
+            "rows": rows,
+        }
+
+    def _get_gradebook_preview_via_assignment_submissions(
+        self,
+        course_id: int,
+        selected_assignments: List[Dict[str, Any]],
+    ) -> dict | None:
+        """
+        Fallback para instancias donde /students/submissions rechaza assignment_ids[].
+        Agrega las notas consultando las submissions actividad a actividad.
+        """
+        rows_by_student = {}
+
+        for assignment in selected_assignments:
+            assignment_id = assignment.get("id")
+            if assignment_id is None:
+                continue
+
+            self.error_message = None
+            submissions = self.get_all_submissions(course_id, assignment_id)
+            if self.error_message:
+                return None
+
+            for submission in submissions:
+                student_id = submission.get("user_id")
+                if student_id is None:
+                    continue
+
+                student_name = (submission.get("user") or {}).get("name") or f"Usuario {student_id}"
+                row = rows_by_student.setdefault(
+                    student_id,
+                    {
+                        "student_id": student_id,
+                        "student_name": student_name,
+                        "grades_by_assignment_id": {},
+                    },
+                )
+
+                if student_name and row["student_name"].startswith("Usuario "):
+                    row["student_name"] = student_name
+
+                row["grades_by_assignment_id"][assignment_id] = self._format_gradebook_grade(submission)
+
+        rows = sorted(
+            rows_by_student.values(),
+            key=lambda row: (row.get("student_name") or "").casefold(),
+        )
+
+        return {
+            "selected_assignments": selected_assignments,
+            "rows": rows,
+        }
+
+    def export_gradebook_preview_to_csv(self, preview_data: dict, out_path: Path) -> bool:
+        """Guarda en CSV la previsualización del libro de notas."""
+        self.logger.info(f"Exportando libro de notas a CSV en '{out_path}'")
+        try:
+            os.makedirs(out_path.parent, exist_ok=True)
+            gradebook_preview_to_csv(preview_data, out_path)
+            self.logger.info(f"Libro de notas exportado con éxito: {out_path}")
+            return True
+        except IOError as e:
+            self.error_message = f"Error de escritura al guardar el CSV del libro de notas: {e}"
+            self.logger.error(self.error_message, exc_info=True)
+            return False
+        except Exception as e:
+            self.error_message = f"Error inesperado al exportar el libro de notas: {e}"
+            self.logger.error(self.error_message, exc_info=True)
+            return False
+
+    def _build_gradebook_column_labels(self, assignments: List[Dict[str, Any]]) -> dict[int, str]:
+        counts = Counter(
+            assignment.get("name") or f"Actividad {assignment.get('id')}"
+            for assignment in assignments
+        )
+        labels = {}
+        for assignment in assignments:
+            assignment_id = assignment.get("id")
+            if assignment_id is None:
+                continue
+            base_name = assignment.get("name") or f"Actividad {assignment_id}"
+            labels[assignment_id] = (
+                f"{base_name} (ID {assignment_id})"
+                if counts[base_name] > 1
+                else base_name
+            )
+        return labels
+
+    def _extract_grouped_submission_context(self, group: dict) -> tuple[int | str | None, str, list[dict]]:
+        submissions = group.get("submissions")
+        if submissions is None and group.get("assignment_id") is not None:
+            submissions = [group]
+        submissions = submissions or []
+
+        student_id = group.get("user_id")
+        if student_id is None and group.get("user"):
+            student_id = group["user"].get("id")
+        if student_id is None and submissions:
+            student_id = submissions[0].get("user_id")
+
+        if student_id is None:
+            return None, "", []
+
+        student_name = ""
+        if group.get("user"):
+            student_name = group["user"].get("name", "")
+        if not student_name:
+            for submission in submissions:
+                student_name = (submission.get("user") or {}).get("name", "")
+                if student_name:
+                    break
+        if not student_name:
+            student_name = f"Usuario {student_id}"
+
+        return student_id, student_name, submissions
+
+    def _format_gradebook_grade(self, submission: dict) -> str:
+        grade = submission.get("grade")
+        if grade not in (None, ""):
+            return str(grade)
+
+        for key in ("entered_grade", "entered_score", "score"):
+            value = submission.get(key)
+            if value in (None, ""):
+                continue
+            if isinstance(value, float) and value.is_integer():
+                value = int(value)
+            return str(value)
+
+        return ""
 
     def get_assignment_submission_summary(self, course_id: int, assignment_id: int) -> Dict[str, Any] | None:
         """Obtiene un resumen de las entregas para una actividad."""

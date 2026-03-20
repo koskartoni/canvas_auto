@@ -2,19 +2,19 @@
 
 import customtkinter as ctk
 import webbrowser
+from tkinter import messagebox
+
 from app.api.canvas_client import CanvasClient
 from app.api.gemini_client import HybridEvaluator
-from tkinter import messagebox
 from app.utils.event_logger import log_action
 from app.utils.logger_config import logger
 
-import os
 
-
-# Nombres de las pestañas (constantes)
-TAB_ACTIVITIES = "📁 Actividades"
-TAB_QUIZZES = "📝 Quizzes"
-TAB_RUBRICS = "📊 Rúbricas"
+# Nombres de las pestañas
+TAB_ACTIVITIES = "Actividades"
+TAB_QUIZZES = "Quizzes"
+TAB_RUBRICS = "Rubricas"
+TAB_GRADEBOOK = "Libro de notas"
 
 
 class MainWindow(ctk.CTk):
@@ -26,32 +26,26 @@ class MainWindow(ctk.CTk):
         self.gemini_evaluator = gemini_evaluator
         self.restart = False
 
-        # --- CONFIGURACIÓN DE LA VENTANA PRINCIPAL ---
         course = self.client.get_course(self.course_id)
         self.course_name = course.name if course else f"Curso ID: {self.course_id}"
         self.title(f"Canvas Auto - {self.course_name}")
         self.geometry("900x700")
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=0)  # Header
-        self.grid_rowconfigure(1, weight=1)  # TabView (contenido principal)
-        self.grid_rowconfigure(2, weight=0)  # Barra de estado
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=0)
 
-        # Interceptar el evento de cierre de la ventana
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-        # --- HEADER: nombre del curso + botón cambiar curso ---
         self._setup_header()
-
-        # --- TABVIEW GLOBAL ---
         self._setup_tabview()
 
-        # --- SUBMENÚS (lazy: se instancian al primer acceso) ---
         self.quizzes_frame = None
         self.rubrics_frame = None
         self.activities_frame = None
+        self.gradebook_frame = None
         self._initialized_tabs: set[str] = set()
 
-        # --- BARRA DE ESTADO ---
         self.status_frame = ctk.CTkFrame(self, height=25)
         self.status_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=(5, 10))
         self.status_frame.grid_columnconfigure(0, weight=1)
@@ -62,17 +56,12 @@ class MainWindow(ctk.CTk):
         self.progress_bar = ctk.CTkProgressBar(self.status_frame)
         self.status_timer = None
 
-        # --- ATAJOS DE TECLADO ---
         self.bind("<Control-Key-1>", lambda e: self._switch_to_tab(TAB_ACTIVITIES))
         self.bind("<Control-Key-2>", lambda e: self._switch_to_tab(TAB_QUIZZES))
         self.bind("<Control-Key-3>", lambda e: self._switch_to_tab(TAB_RUBRICS))
+        self.bind("<Control-Key-4>", lambda e: self._switch_to_tab(TAB_GRADEBOOK))
 
-        # Inicializar la primera pestaña visible
         self._on_tab_change()
-
-    # ------------------------------------------------------------------ #
-    #  SETUP
-    # ------------------------------------------------------------------ #
 
     def _setup_header(self):
         """Crea la cabecera con el nombre del curso y el botón de cambio."""
@@ -81,41 +70,45 @@ class MainWindow(ctk.CTk):
         header.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            header, text=self.course_name,
-            font=ctk.CTkFont(size=22, weight="bold"), anchor="w"
+            header,
+            text=self.course_name,
+            font=ctk.CTkFont(size=22, weight="bold"),
+            anchor="w",
         ).grid(row=0, column=0, sticky="w", padx=5)
 
         btn_frame = ctk.CTkFrame(header, fg_color="transparent")
         btn_frame.grid(row=0, column=1, sticky="e")
 
         ctk.CTkButton(
-            btn_frame, text="🔄 Cambiar Curso", width=140,
-            command=self.change_course
+            btn_frame,
+            text="Cambiar curso",
+            width=140,
+            command=self.change_course,
         ).pack(side="right", padx=(5, 0))
 
         ctk.CTkButton(
-            btn_frame, text="▶ Tutorial", width=100,
-            fg_color="transparent", border_width=1,
-            command=self.open_main_tutorial
+            btn_frame,
+            text="Tutorial",
+            width=100,
+            fg_color="transparent",
+            border_width=1,
+            command=self.open_main_tutorial,
         ).pack(side="right", padx=(5, 0))
 
     def _setup_tabview(self):
-        """Crea el CTkTabview global con las 3 pestañas."""
+        """Crea el CTkTabview global con las pestañas principales."""
         self.tab_view = ctk.CTkTabview(self, anchor="w")
         self.tab_view.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
 
         self.tab_view.add(TAB_ACTIVITIES)
         self.tab_view.add(TAB_QUIZZES)
         self.tab_view.add(TAB_RUBRICS)
+        self.tab_view.add(TAB_GRADEBOOK)
 
         self.tab_view.configure(command=self._on_tab_change)
 
-    # ------------------------------------------------------------------ #
-    #  NAVEGACIÓN ENTRE PESTAÑAS (lazy init)
-    # ------------------------------------------------------------------ #
-
     def _on_tab_change(self):
-        """Callback cuando se selecciona una pestaña. Instancia lazy del submenú."""
+        """Instancia lazy del submenú asociado a la pestaña activa."""
         current = self.tab_view.get()
         if current in self._initialized_tabs:
             return
@@ -125,38 +118,44 @@ class MainWindow(ctk.CTk):
 
         if current == TAB_ACTIVITIES:
             from .activities_menu import ActivitiesMenu
+
             parent = self.tab_view.tab(TAB_ACTIVITIES)
             self.activities_frame = ActivitiesMenu(parent, self.client, self.gemini_evaluator, self.course_id, self)
             self.activities_frame.pack(expand=True, fill="both")
 
         elif current == TAB_QUIZZES:
             from .quizzes_menu import QuizzesMenu
+
             parent = self.tab_view.tab(TAB_QUIZZES)
             self.quizzes_frame = QuizzesMenu(parent, self.client, self.course_id)
             self.quizzes_frame.pack(expand=True, fill="both")
 
         elif current == TAB_RUBRICS:
             from .rubrics_menu import RubricsMenu
+
             parent = self.tab_view.tab(TAB_RUBRICS)
             self.rubrics_frame = RubricsMenu(parent, self.client, self.course_id)
             self.rubrics_frame.pack(expand=True, fill="both")
 
+        elif current == TAB_GRADEBOOK:
+            from .gradebook_menu import GradebookMenu
+
+            parent = self.tab_view.tab(TAB_GRADEBOOK)
+            self.gradebook_frame = GradebookMenu(parent, self.client, self.course_id, self)
+            self.gradebook_frame.pack(expand=True, fill="both")
+
     def _switch_to_tab(self, tab_name: str):
-        """Cambia a la pestaña indicada (usado por atajos de teclado)."""
+        """Cambia a la pestaña indicada."""
         self.tab_view.set(tab_name)
         self._on_tab_change()
 
-    # ------------------------------------------------------------------ #
-    #  EVENTOS DE VENTANA
-    # ------------------------------------------------------------------ #
-
     def on_closing(self):
-        """
-        Se ejecuta cuando el usuario intenta cerrar la ventana.
-        Previene el cierre si hay una descarga en curso.
-        """
+        """Previene el cierre si hay una descarga en curso."""
         if self.activities_frame and self.activities_frame.active_thread and self.activities_frame.active_thread.is_alive():
-            messagebox.showwarning("Proceso en Curso", "Hay una descarga en progreso. Por favor, espera a que termine antes de cerrar la aplicación.")
+            messagebox.showwarning(
+                "Proceso en curso",
+                "Hay una descarga en progreso. Espera a que termine antes de cerrar la aplicación.",
+            )
         else:
             self.destroy()
 
@@ -166,13 +165,9 @@ class MainWindow(ctk.CTk):
 
     @log_action
     def change_course(self):
-        logger.info("Botón 'Seleccionar otro Curso' pulsado. Reiniciando flujo.")
+        logger.info("Botón 'Seleccionar otro curso' pulsado. Reiniciando flujo.")
         self.restart = True
         self.destroy()
-
-    # ------------------------------------------------------------------ #
-    #  BARRA DE ESTADO
-    # ------------------------------------------------------------------ #
 
     def update_status(self, message: str, clear_after_ms: int = 0):
         """Actualiza el texto de la barra de estado."""
@@ -184,13 +179,13 @@ class MainWindow(ctk.CTk):
         if clear_after_ms > 0:
             self.status_timer = self.after(clear_after_ms, lambda: self.status_label.configure(text="Listo"))
 
-    def show_progress_bar(self, indeterminate=False):
+    def show_progress_bar(self, indeterminate: bool = False):
         """Muestra la barra de progreso."""
         if indeterminate:
-            self.progress_bar.configure(mode='indeterminate')
+            self.progress_bar.configure(mode="indeterminate")
             self.progress_bar.start()
         else:
-            self.progress_bar.configure(mode='determinate')
+            self.progress_bar.configure(mode="determinate")
             self.progress_bar.set(0)
 
         self.progress_bar.grid(row=0, column=1, padx=10, pady=5, sticky="e")
@@ -201,5 +196,5 @@ class MainWindow(ctk.CTk):
         self.progress_bar.grid_forget()
 
     def update_progress(self, value: float):
-        """Actualiza el valor de la barra de progreso (de 0.0 a 1.0)."""
+        """Actualiza el valor de la barra de progreso."""
         self.progress_bar.set(value)
